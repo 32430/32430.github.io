@@ -3,41 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Discord & florr.io Notification</title>
+  <title>florrio通知 & Remote Monitor</title>
   <style>
     body {
       margin: 0;
       background-color: #1a1a1a;
       color: #ffffff;
       font-family: sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       padding: 20px;
       box-sizing: border-box;
+      display: flex;
+      justify-content: center;
     }
-    #notification-container {
+    .container {
+      width: 100%;
+      max-width: 600px;
+    }
+    .card {
       background: rgba(0, 0, 0, 0.85);
       border: 2px solid #4CAF50;
-      padding: 20px 30px;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      width: 100%;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow-y: auto;
+      margin-bottom: 20px;
     }
-    h1 {
+    h1, h2 {
       margin-top: 0;
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       color: #4CAF50;
       text-align: center;
+    }
+    video {
+      width: 100%;
+      max-height: 300px;
+      background: #000;
+      border-radius: 6px;
+      object-fit: contain;
     }
     #notification-list {
       list-style: none;
       padding: 0;
       margin: 0;
+      max-height: 350px;
+      overflow-y: auto;
     }
     #notification-list li {
       margin-bottom: 15px;
@@ -59,18 +67,55 @@
       display: block;
       margin-top: 4px;
     }
+    a { color: #4CAF50; }
   </style>
 </head>
 <body>
 
-  <div id="notification-container">
-    <h1>Captured Media (Max 10)</h1>
-    <ul id="notification-list">
-      <li>接続中...</li>
-    </ul>
+  <div class="container">
+    <!-- WebRTC ライブ配信プレビュー -->
+    <div class="card">
+      <h2>Live Remote Stream</h2>
+      <video id="remoteVideo" autoplay playsinline controls></video>
+    </div>
+
+    <!-- キャプチャ画像リスト (最大10件) -->
+    <div class="card">
+      <h1>florr.io Notification (Max 10)</h1>
+      <ul id="notification-list">
+        <li>接続中...</li>
+      </ul>
+    </div>
   </div>
 
   <script>
+    const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const ws = new WebSocket(protocol + location.host);
+    let pc;
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    ws.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'init' || data.type === 'update') {
+          renderList(data.list);
+        } else if (data.type === 'offer') {
+          pc = new RTCPeerConnection(rtcConfig);
+          pc.ontrack = (e) => { document.getElementById('remoteVideo').srcObject = e.streams[0]; };
+          pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate })); };
+          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: 'answer', answer: answer }));
+        } else if (data.type === 'candidate' && pc) {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      } catch (e) {
+        console.error('データ解析エラー', e);
+      }
+    };
+
     function renderList(list) {
       const listElem = document.getElementById('notification-list');
       if (!list || list.length === 0) {
@@ -81,7 +126,7 @@
       listElem.innerHTML = list.map(item => {
         let content = '';
         if (item.url) {
-          content = `<a href="${item.url}" target="_blank" style="color: #4CAF50;">${item.url}</a>
+          content = `<a href="${item.url}" target="_blank">${item.url}</a>
                      <img src="${item.url}" alt="Captured Image">`;
         } else {
           content = `<span>${item.message || JSON.stringify(item)}</span>`;
@@ -90,42 +135,6 @@
         return `<li>${content}<span class="timestamp">${timeStr}</span></li>`;
       }).join('');
     }
-
-    function connectWebSocket() {
-      const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
-      const ws = new WebSocket(protocol + location.host);
-
-      ws.onopen = () => {
-        console.log('WebSocket接続確立');
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          // サーバーから送られる形式（init または update の配列）に対応
-          if (data.list && Array.isArray(data.list)) {
-            renderList(data.list);
-          } else if (Array.isArray(data)) {
-            renderList(data);
-          }
-        } catch (e) {
-          console.error('データ解析エラー', e);
-        }
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket切断。3秒後に再接続します...');
-        document.getElementById('notification-list').innerHTML = '<li>再接続中...</li>';
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocketエラー', error);
-        ws.close();
-      };
-    }
-
-    connectWebSocket();
   </script>
 
 </body>
