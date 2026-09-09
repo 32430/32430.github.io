@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 静的ファイルの配信
 app.use(express.static(path.join(__dirname, '../')));
 
 const server = http.createServer(app);
@@ -20,8 +21,6 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      
-      // シグナリング用メッセージを他のクライアントへブロードキャスト
       if (data.type === 'offer' || data.type === 'answer' || data.type === 'candidate') {
         wss.clients.forEach((client) => {
           if (client !== ws && client.readyState === ws.OPEN) {
@@ -34,7 +33,6 @@ wss.on('connection', (ws) => {
     }
   });
 
-  // 接続時に現在の画像リストも送信
   ws.send(JSON.stringify({ type: 'init', list: recentImages }));
 });
 
@@ -58,69 +56,9 @@ app.post('/api/notification', (req, res) => {
   res.status(200).json({ success: true, list: recentImages });
 });
 
-// ダッシュボード画面（WebRTC受信プレビュー ＋ 画像リスト）
+// トップページアクセス時に `florrio.html` を返す
 app.get('/', (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <title>Discord & Remote Monitor</title>
-        <style>
-          body { background: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
-          .container { max-width: 800px; margin: auto; }
-          .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-          video { width: 100%; max-height: 400px; background: #000; border-radius: 6px; }
-          ul { padding-left: 20px; }
-          li { margin-bottom: 15px; word-break: break-all; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="card">
-            <h2>Live Remote Stream</h2>
-            <video id="remoteVideo" autoplay playsinline controls></video>
-          </div>
-          <div class="card">
-            <h2>Captured Media (Max 10)</h2>
-            <ul id="list"><li>読み込み中...</li></ul>
-          </div>
-        </div>
-        <script>
-          const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
-          const ws = new WebSocket(protocol + location.host);
-          let pc;
-          const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
-          ws.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'init' || data.type === 'update') {
-              renderList(data.list || data);
-            } else if (data.type === 'offer') {
-              pc = new RTCPeerConnection(rtcConfig);
-              pc.ontrack = (e) => { document.getElementById('remoteVideo').srcObject = e.streams[0]; };
-              pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate })); };
-              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-              ws.send(JSON.stringify({ type: 'answer', answer: answer }));
-            } else if (data.type === 'candidate' && pc) {
-              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-          };
-
-          function renderList(list) {
-            const listElem = document.getElementById('list');
-            if (!list || list.length === 0) { listElem.innerHTML = '<li>まだデータはありません</li>'; return; }
-            listElem.innerHTML = list.map(item => \`
-              <li>
-                \${item.url ? \`<a href="\${item.url}" target="_blank" style="color:#4CAF50;">\${item.url}</a><br><img src="\${item.url}" width="150" style="margin-top:5px;border-radius:4px;">\` : item.message}
-                <br><small style="color:#aaa;">\${item.timestamp || ''}</small>
-              </li>
-            \`).join('');
-          }
-        </script>
-      </body>
-    </html>
-  `);
+  res.sendFile(path.join(__dirname, '../florrio.html'));
 });
 
 const PORT = process.env.PORT || 10000;
