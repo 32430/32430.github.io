@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>florrio通知 & Remote Monitor</title>
+  <title>florrio - Screen Monitor</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,8 @@
       padding: 20px;
       box-sizing: border-box;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
     }
     .container {
       width: 100%;
@@ -26,65 +27,50 @@
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
       margin-bottom: 20px;
-    }
-    h1, h2 {
-      margin-top: 0;
-      font-size: 1.3rem;
-      color: #4CAF50;
       text-align: center;
+    }
+    h2 {
+      color: #4CAF50;
+      margin-top: 0;
     }
     video {
       width: 100%;
-      max-height: 300px;
+      max-height: 400px;
       background: #000;
       border-radius: 6px;
       object-fit: contain;
     }
-    #notification-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 350px;
-      overflow-y: auto;
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
     }
-    #notification-list li {
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #333;
-      word-break: break-all;
-      font-size: 0.95rem;
+    button:active {
+      background: #388E3C;
     }
-    #notification-list li img {
-      display: block;
-      margin-top: 8px;
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-    }
-    .timestamp {
-      font-size: 0.8rem;
-      color: #aaa;
-      display: block;
-      margin-top: 4px;
-    }
-    a { color: #4CAF50; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <!-- WebRTC ライブ配信プレビュー -->
+    <!-- スマホ側：画面共有開始ボタン -->
     <div class="card">
-      <h2>Live Remote Stream</h2>
-      <video id="remoteVideo" autoplay playsinline controls></video>
+      <h2>スマホ画面配信用</h2>
+      <p style="font-size: 0.9rem; color: #ccc;">下のボタンを押して、Discordを開いているタブや画面を選択してください。</p>
+      <button id="startShare">画面共有を開始する</button>
     </div>
 
-    <!-- キャプチャ画像リスト (最大10件) -->
+    <!-- プレビュー画面（自分または他人が見る用） -->
     <div class="card">
-      <h1>florr.io Notification (Max 10)</h1>
-      <ul id="notification-list">
-        <li>接続中...</li>
-      </ul>
+      <h2>Live Stream Monitor</h2>
+      <video id="remoteVideo" autoplay playsinline controls></video>
     </div>
   </div>
 
@@ -92,49 +78,71 @@
     const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
     const ws = new WebSocket(protocol + location.host);
     let pc;
+    let localStream;
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+    // WebSocket受信処理（WebRTCシグナリング）
     ws.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
-        
-        if (data.type === 'init' || data.type === 'update') {
-          renderList(data.list);
-        } else if (data.type === 'offer') {
+
+        if (data.type === 'offer') {
+          // 配信側からのオファーを受信した場合（受信側ビューアーの処理）
           pc = new RTCPeerConnection(rtcConfig);
-          pc.ontrack = (e) => { document.getElementById('remoteVideo').srcObject = e.streams[0]; };
-          pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate })); };
+          pc.ontrack = (e) => {
+            document.getElementById('remoteVideo').srcObject = e.streams[0];
+          };
+          pc.onicecandidate = (e) => {
+            if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate }));
+          };
           await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           ws.send(JSON.stringify({ type: 'answer', answer: answer }));
+
+        } else if (data.type === 'answer' && pc) {
+          // 配信側がアンサーを受信した場合
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+
         } else if (data.type === 'candidate' && pc) {
           await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
       } catch (e) {
-        console.error('データ解析エラー', e);
+        console.error('Signaling error:', e);
       }
     };
 
-    function renderList(list) {
-      const listElem = document.getElementById('notification-list');
-      if (!list || list.length === 0) {
-        listElem.innerHTML = '<li>まだデータはありません</li>';
-        return;
-      }
+    // 「画面共有を開始する」ボタンを押したときの処理（スマホ側）
+    document.getElementById('startShare').onclick = async () => {
+      try {
+        // getDisplayMediaで画面キャプチャを取得
+        localStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: "always" },
+          audio: false
+        });
 
-      listElem.innerHTML = list.map(item => {
-        let content = '';
-        if (item.url) {
-          content = `<a href="${item.url}" target="_blank">${item.url}</a>
-                     <img src="${item.url}" alt="Captured Image">`;
-        } else {
-          content = `<span>${item.message || JSON.stringify(item)}</span>`;
-        }
-        const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : '';
-        return `<li>${content}<span class="timestamp">${timeStr}</span></li>`;
-      }).join('');
-    }
+        // 自分の画面プレビューにも映す
+        document.getElementById('remoteVideo').srcObject = localStream;
+
+        pc = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        pc.onicecandidate = (e) => {
+          if (e.candidate) {
+            ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate }));
+          }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({ type: 'offer', offer: offer }));
+
+        alert('画面共有を開始しました！');
+      } catch (err) {
+        console.error('getDisplayMedia error:', err);
+        alert('画面共有の取得に失敗しました: ' + err.message);
+      }
+    };
   </script>
 
 </body>
