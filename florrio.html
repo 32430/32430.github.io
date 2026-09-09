@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>florrio通知</title>
+  <title>Discord & florr.io Notification</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
     }
     #notification-container {
       background: rgba(0, 0, 0, 0.85);
@@ -21,29 +23,75 @@
       padding: 20px 30px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      text-align: center;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     h1 {
       margin-top: 0;
       font-size: 1.5rem;
       color: #4CAF50;
+      text-align: center;
     }
-    #notification-text {
-      font-size: 1.2rem;
+    #notification-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #notification-list li {
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #333;
       word-break: break-all;
+      font-size: 0.95rem;
+    }
+    #notification-list li img {
+      display: block;
+      margin-top: 8px;
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+    .timestamp {
+      font-size: 0.8rem;
+      color: #aaa;
+      display: block;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
 
   <div id="notification-container">
-    <h1>florr.io Notification</h1>
-    <p>最新の通知: <span id="notification-text">接続中...</span></p>
+    <h1>Captured Media (Max 10)</h1>
+    <ul id="notification-list">
+      <li>接続中...</li>
+    </ul>
   </div>
 
   <script>
+    function renderList(list) {
+      const listElem = document.getElementById('notification-list');
+      if (!list || list.length === 0) {
+        listElem.innerHTML = '<li>まだデータはありません</li>';
+        return;
+      }
+
+      listElem.innerHTML = list.map(item => {
+        let content = '';
+        if (item.url) {
+          content = `<a href="${item.url}" target="_blank" style="color: #4CAF50;">${item.url}</a>
+                     <img src="${item.url}" alt="Captured Image">`;
+        } else {
+          content = `<span>${item.message || JSON.stringify(item)}</span>`;
+        }
+        const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : '';
+        return `<li>${content}<span class="timestamp">${timeStr}</span></li>`;
+      }).join('');
+    }
+
     function connectWebSocket() {
-      // HTTPSの場合は wss://, HTTPの場合は ws:// に自動切り替え
       const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
       const ws = new WebSocket(protocol + location.host);
 
@@ -54,9 +102,11 @@
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const textElem = document.getElementById('notification-text');
-          if (data && data.message) {
-            textElem.innerText = data.message;
+          // サーバーから送られる形式（init または update の配列）に対応
+          if (data.list && Array.isArray(data.list)) {
+            renderList(data.list);
+          } else if (Array.isArray(data)) {
+            renderList(data);
           }
         } catch (e) {
           console.error('データ解析エラー', e);
@@ -65,8 +115,8 @@
 
       ws.onclose = () => {
         console.log('WebSocket切断。3秒後に再接続します...');
-        document.getElementById('notification-text').innerText = '再接続中...';
-        setTimeout(connectWebSocket, 3000); // 切断時は自動で再接続
+        document.getElementById('notification-list').innerHTML = '<li>再接続中...</li>';
+        setTimeout(connectWebSocket, 3000);
       };
 
       ws.onerror = (error) => {
