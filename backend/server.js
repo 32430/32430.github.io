@@ -8,19 +8,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 静的ファイルの配信
-app.use(express.static(path.join(__dirname, '../')));
-
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-let recentImages = [];
-
-// WebSocket接続管理（スマホとPCのシグナリング中継）
+// WebSocket接続管理（スマホとビューアーのシグナリング中継）
 wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
+      // WebRTCのシグナリングメッセージを他のクライアントへ転送
       if (data.type === 'offer' || data.type === 'answer' || data.type === 'candidate') {
         wss.clients.forEach((client) => {
           if (client !== ws && client.readyState === ws.OPEN) {
@@ -29,34 +25,12 @@ wss.on('connection', (ws) => {
         });
       }
     } catch (e) {
-      console.error('WebSocket message error:', e);
+      console.error('WebSocket error:', e);
     }
   });
-
-  ws.send(JSON.stringify({ type: 'init', list: recentImages }));
 });
 
-// 画像通知の受信API
-app.post('/api/notification', (req, res) => {
-  const data = req.body;
-  if (!data || (!data.url && !data.message)) {
-    return res.status(400).send('Data is required');
-  }
-
-  const newEntry = { ...data, timestamp: new Date().toISOString() };
-  recentImages.unshift(newEntry);
-  if (recentImages.length > 10) recentImages.pop();
-
-  wss.clients.forEach((client) => {
-    if (client.readyState === client.OPEN) {
-      client.send(JSON.stringify({ type: 'update', list: recentImages }));
-    }
-  });
-
-  res.status(200).json({ success: true, list: recentImages });
-});
-
-// トップページアクセス時に `florrio.html` を返す
+// トップページ（florrio.html）を返す
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../florrio.html'));
 });
