@@ -1,1 +1,0 @@
-FROM searxng/searxng:latest
