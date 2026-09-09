@@ -8,6 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 静的ファイルの配信（同じフォルダ内を指定）
+app.use(express.static(__dirname));
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
@@ -16,7 +19,6 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      // WebRTCのシグナリングメッセージを他のクライアントへ転送
       if (data.type === 'offer' || data.type === 'answer' || data.type === 'candidate') {
         wss.clients.forEach((client) => {
           if (client !== ws && client.readyState === ws.OPEN) {
@@ -30,9 +32,9 @@ wss.on('connection', (ws) => {
   });
 });
 
-// トップページ（florrio.html）を返す
+// トップページ（florrio.html）を返す（同じフォルダ内の florrio.html を指定）
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../florrio.html'));
+  res.sendFile(path.join(__dirname, 'florrio.html'));
 });
 
 const PORT = process.env.PORT || 10000;
