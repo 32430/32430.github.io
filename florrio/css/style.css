@@ -1,0 +1,83 @@
+body {
+    background-color: #1e1f22;
+    color: #dbdee1;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #3f4147;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: #f2f3f5;
+    margin: 0;
+}
+
+#connection-status {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.status-connected {
+    background-color: #23a55a;
+    color: #ffffff;
+}
+
+.status-disconnected {
+    background-color: #f23f43;
+    color: #ffffff;
+}
+
+.feed-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.placeholder {
+    text-align: center;
+    color: #949ba4;
+    padding: 40px;
+}
+
+/* 通知カードのスタイル（DiscordのEmbed風） */
+.notification-card {
+    background-color: #2b2d31;
+    border-left: 4px solid #5865f2;
+    padding: 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #949ba4;
+    margin-bottom: 4px;
+}
+
+.notification-content {
+    font-size: 0.95rem;
+    color: #f2f3f5;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
