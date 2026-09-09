@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>florr.io リアルタイム通知モニター</title>
+    <!-- CSSファイルの読み込み -->
+    <link rel="stylesheet" href="florrio/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>florr.io Live Notifications</h1>
+            <p id="connection-status" class="status-disconnected">接続待機中...</p>
+        </header>
+
+        <main>
+            <!-- 通知が流れてくるコンテナ -->
+            <div id="notification-feed" class="feed-container">
+                <div class="placeholder">通知を待っています...</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JSファイルの読み込み -->
+    <script src="florrio/js/script.js"></script>
+</body>
+</html>
