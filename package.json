@@ -1,13 +1,17 @@
 {
-  "name": "florrio-notification-backend",
+  "name": "screen-mirror",
   "version": "1.0.0",
+  "private": true,
+  "description": "Browser based screen mirroring with WebRTC and WebSocket signaling",
   "main": "server.js",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "ws": "^8.16.0"
-  },
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

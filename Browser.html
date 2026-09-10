@@ -1,188 +1,600 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>Custom Proxy Browser</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: sans-serif;
-            background: #1a1a1a;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-        }
-        .toolbar {
-            display: flex;
-            padding: 10px;
-            background: #2c2c2c;
-            gap: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            z-index: 10;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 15px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            background: #1e1e1e;
-            color: #fff;
-            outline: none;
-        }
-        input[type="text"]:focus {
-            border-color: #007bff;
-        }
-        button {
-            padding: 8px 16px;
-            font-size: 15px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .secondary-btn {
-            background: #444;
-        }
-        .secondary-btn:hover {
-            background: #555;
-        }
-        #viewer {
-            flex: 1;
-            width: 100%;
-            border: none;
-            background: white;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Screen Mirror</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d12;
+      --panel: #151923;
+      --panel2: #1d2230;
+      --text: #f5f7fb;
+      --muted: #aab1c0;
+      --accent: #4f8cff;
+      --danger: #ff5b68;
+      --border: #303747;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, #1b2640 0, transparent 40%),
+        var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .wrap {
+      width: min(1000px, 100%);
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 7vw, 48px);
+    }
+
+    .sub {
+      margin: 0 0 24px;
+      color: var(--muted);
+    }
+
+    .panel {
+      background: rgba(21, 25, 35, .92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.2);
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 7px;
+    }
+
+    input, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 13px 14px;
+      font: inherit;
+    }
+
+    input {
+      background: #0e1118;
+      color: var(--text);
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    button {
+      margin-top: 10px;
+      background: var(--accent);
+      color: white;
+      border: 0;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 650px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .status {
+      color: var(--muted);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .room {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      word-break: break-all;
+    }
+
+    .share-url {
+      font-size: 13px;
+      word-break: break-all;
+      color: #b9d0ff;
+    }
+
+    #videos {
+      display: grid;
+      gap: 14px;
+    }
+
+    .video-card {
+      background: #05070a;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      max-height: 78vh;
+      display: block;
+      background: black;
+      object-fit: contain;
+    }
+
+    .video-label {
+      padding: 9px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden { display: none !important; }
+
+    .notice {
+      padding: 12px;
+      border-radius: 12px;
+      background: #202637;
+      color: #dce5ff;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      background: #090c12;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 <body>
+  <main class="wrap">
+    <h1>Screen Mirror</h1>
+    <p class="sub">スマホ画面をWebRTCで別端末へリアルタイム表示</p>
 
-    <div class="toolbar">
-        <button class="secondary-btn" onclick="goBack()">←</button>
-        <button class="secondary-btn" onclick="goForward()">→</button>
-        <button class="secondary-btn" onclick="reloadPage()">↻</button>
-        <input type="text" id="urlInput" placeholder="URLまたは検索キーワードを入力してEnter..." onkeypress="handleKeyPress(event)">
-        <button onclick="loadPage()">検索・移動</button>
-        <button class="secondary-btn" onclick="openInBlank()">about:blankで隠す</button>
-    </div>
+    <section id="setup" class="panel">
+      <div class="grid">
+        <div>
+          <label for="roomInput">ルームコード</label>
+          <input id="roomInput" maxlength="32" placeholder="例: A1B2C3D4">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="newRoomBtn">新しいルームを作る</button>
+        </div>
+      </div>
 
-    <iframe id="viewer"></iframe>
+      <div class="grid">
+        <button id="shareBtn">📱 この端末の画面を配信</button>
+        <button id="viewBtn" class="secondary">👀 この端末を視聴端末にする</button>
+      </div>
 
-    <script>
-        const RENDER_BASE_URL = 'https://browser-32043.onrender.com';
-        const RENDER_PROXY_URL = RENDER_BASE_URL + '/proxy?url=';
+      <div class="notice" style="margin-top:12px;">
+        配信側では「画面共有の開始」を押すと、ブラウザの画面共有許可が表示されます。
+        Android/Xiaomiではブラウザ側が画面キャプチャに対応している必要があります。
+      </div>
+    </section>
 
-        async function loadPage() {
-            let inputVal = document.getElementById('urlInput').value.trim();
-            if (!inputVal) return;
+    <section id="roomPanel" class="panel hidden">
+      <div>ルーム</div>
+      <div id="roomCode" class="room">-</div>
 
-            let iframe = document.getElementById('viewer');
+      <div style="margin-top:12px;">視聴用URL</div>
+      <div id="shareUrl" class="share-url">-</div>
 
-            if (inputVal.startsWith('http://') || inputVal.startsWith('https://')) {
-                iframe.src = RENDER_PROXY_URL + encodeURIComponent(inputVal);
-            } else if (inputVal.includes('.') && !inputVal.includes(' ')) {
-                iframe.src = RENDER_PROXY_URL + encodeURIComponent('https://' + inputVal);
-            } else {
-                // キーワード検索の場合は自作APIを叩いてHTMLを生成してiframeに流し込む
-                try {
-                    let res = await fetch(`${RENDER_BASE_URL}/search-api?q=${encodeURIComponent(inputVal)}`);
-                    let data = await res.json();
+      <div class="grid" style="margin-top:12px;">
+        <button id="copyBtn">視聴用URLをコピー</button>
+        <button id="stopBtn" class="danger">切断</button>
+      </div>
 
-                    // 検索結果のHTMLを組み立てる
-                    let htmlContent = `
-                        <html>
-                        <head>
-                            <style>
-                                body { font-family: sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
-                                h2 { color: #007bff; }
-                                .result-item { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-                                a { color: #0066cc; text-decoration: none; font-size: 18px; }
-                                a:hover { text-decoration: underline; }
-                                p { margin: 5px 0 0 0; color: #555; font-size: 14px; }
-                            </style>
-                        </head>
-                        <body>
-                            <h2>「${inputVal}」の検索結果</h2>
-                    `;
+      <p id="status" class="status">接続中...</p>
+    </section>
 
-                    if (data.AbstractText) {
-                        htmlContent += `
-                            <div class="result-item">
-                                <a href="${RENDER_PROXY_URL + encodeURIComponent(data.AbstractURL)}">${data.Heading || '概要'}</a>
-                                <p>${data.AbstractText}</p>
-                            </div>
-                        `;
-                    }
+    <section id="videos" class="hidden"></section>
+  </main>
 
-                    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                        data.RelatedTopics.forEach(item => {
-                            if (item.Text && item.FirstURL) {
-                                htmlContent += `
-                                    <div class="result-item">
-                                        <a href="${RENDER_PROXY_URL + encodeURIComponent(item.FirstURL)}">${item.Text}</a>
-                                    </div>
-                                `;
-                            }
-                        });
-                    } else if (!data.AbstractText) {
-                        htmlContent += `<p>関連する結果が見つかりませんでした。「${inputVal}」で直接Googleや他のサイトを探してみてください。</p>`;
-                    }
+<script>
+"use strict";
 
-                    htmlContent += `</body></html>`;
+const roomInput = document.getElementById("roomInput");
+const newRoomBtn = document.getElementById("newRoomBtn");
+const shareBtn = document.getElementById("shareBtn");
+const viewBtn = document.getElementById("viewBtn");
+const setup = document.getElementById("setup");
+const roomPanel = document.getElementById("roomPanel");
+const roomCodeEl = document.getElementById("roomCode");
+const shareUrlEl = document.getElementById("shareUrl");
+const copyBtn = document.getElementById("copyBtn");
+const stopBtn = document.getElementById("stopBtn");
+const statusEl = document.getElementById("status");
+const videos = document.getElementById("videos");
 
-                    // iframeに生成したHTMLを書き込む
-                    let doc = iframe.contentDocument || iframe.contentWindow.document;
-                    doc.open();
-                    doc.write(htmlContent);
-                    doc.close();
+let ws = null;
+let room = null;
+let role = null;
+let clientId = null;
+let localStream = null;
 
-                } catch (e) {
-                    alert('検索の取得に失敗しました。');
-                }
-            }
+// peerId -> RTCPeerConnection
+const peers = new Map();
+
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" }
+];
+
+// TURNを使う場合は、ここに自分のTURNサーバーを追加できます。
+// 例:
+// {
+//   urls: "turn:example.com:3478",
+//   username: "USERNAME",
+//   credential: "PASSWORD"
+// }
+
+function randomRoom() {
+  const bytes = crypto.getRandomValues(new Uint8Array(4));
+  return [...bytes].map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+function wsUrl() {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${location.host}`;
+}
+
+function send(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+  }
+}
+
+function createPeer(peerId, peerRole) {
+  if (peers.has(peerId)) return peers.get(peerId);
+
+  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  peers.set(peerId, pc);
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      send({
+        type: "candidate",
+        to: peerId,
+        data: event.candidate
+      });
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    setStatus(`WebRTC: ${state}`);
+
+    if (["failed", "closed", "disconnected"].includes(state)) {
+      removePeer(peerId);
+    }
+  };
+
+  if (role === "broadcaster") {
+    for (const track of localStream.getTracks()) {
+      pc.addTrack(track, localStream);
+    }
+  }
+
+  if (peerRole === "broadcaster") {
+    pc.ontrack = (event) => {
+      const stream = event.streams[0];
+      if (stream) showRemoteVideo(peerId, stream);
+    };
+  }
+
+  return pc;
+}
+
+async function makeOffer(peerId) {
+  const pc = peers.get(peerId);
+  if (!pc) return;
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  send({
+    type: "offer",
+    to: peerId,
+    data: pc.localDescription
+  });
+}
+
+function showRemoteVideo(peerId, stream) {
+  let card = document.getElementById(`video-${peerId}`);
+
+  if (!card) {
+    card = document.createElement("div");
+    card.className = "video-card";
+    card.id = `video-${peerId}`;
+
+    const label = document.createElement("div");
+    label.className = "video-label";
+    label.textContent = "📱 配信中の画面";
+
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.controls = false;
+
+    card.appendChild(video);
+    card.appendChild(label);
+    videos.appendChild(card);
+  }
+
+  const video = card.querySelector("video");
+  video.srcObject = stream;
+  videos.classList.remove("hidden");
+}
+
+function removePeer(peerId) {
+  const pc = peers.get(peerId);
+  if (pc) {
+    try { pc.close(); } catch (_) {}
+  }
+  peers.delete(peerId);
+
+  const card = document.getElementById(`video-${peerId}`);
+  if (card) card.remove();
+
+  if (!videos.children.length) {
+    videos.classList.add("hidden");
+  }
+}
+
+function cleanup() {
+  for (const [peerId, pc] of peers) {
+    try { pc.close(); } catch (_) {}
+    removePeer(peerId);
+  }
+
+  peers.clear();
+
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+
+  if (ws) {
+    try { ws.close(); } catch (_) {}
+    ws = null;
+  }
+}
+
+function openRoomPanel() {
+  setup.classList.add("hidden");
+  roomPanel.classList.remove("hidden");
+
+  roomCodeEl.textContent = room;
+
+  const url = new URL(location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("mode", "view");
+  url.searchParams.set("room", room);
+
+  shareUrlEl.textContent = url.toString();
+}
+
+function connect() {
+  ws = new WebSocket(wsUrl());
+
+  ws.onopen = () => {
+    send({
+      type: "join",
+      room,
+      role
+    });
+
+    setStatus("シグナリングサーバーに接続しました。");
+  };
+
+  ws.onmessage = async (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === "hello") {
+        clientId = msg.clientId;
+        return;
+      }
+
+      if (msg.type === "error") {
+        setStatus(`エラー: ${msg.message}`);
+        return;
+      }
+
+      if (msg.type === "joined") {
+        setStatus(
+          `ルーム ${msg.room} に参加しました。\n` +
+          `現在の接続数: ${msg.peerCount}`
+        );
+        return;
+      }
+
+      if (msg.type === "peer-joined") {
+        if (role === "broadcaster" && msg.role === "viewer") {
+          createPeer(msg.peerId, msg.role);
+          await makeOffer(msg.peerId);
+        } else if (role === "viewer" && msg.role === "broadcaster") {
+          createPeer(msg.peerId, msg.role);
         }
+        return;
+      }
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') {
-                loadPage();
-            }
-        }
+      if (msg.type === "peer-left") {
+        removePeer(msg.peerId);
+        return;
+      }
 
-        function goBack() {
-            try {
-                document.getElementById('viewer').contentWindow.history.back();
-            } catch(e) {}
-        }
+      if (msg.type === "offer" && role === "viewer") {
+        const pc = createPeer(msg.from, "broadcaster");
 
-        function goForward() {
-            try {
-                document.getElementById('viewer').contentWindow.history.forward();
-            } catch(e) {}
-        }
+        await pc.setRemoteDescription(msg.data);
 
-        function reloadPage() {
-            let iframe = document.getElementById('viewer');
-            iframe.src = iframe.src;
-        }
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
 
-        function openInBlank() {
-            let win = window.open('about:blank');
-            if (!win) {
-                alert('ポップアップがブロックされました。');
-                return;
-            }
-            let doc = win.document;
-            doc.open();
-            doc.write(document.documentElement.outerHTML);
-            doc.close();
+        send({
+          type: "answer",
+          to: msg.from,
+          data: pc.localDescription
+        });
+        return;
+      }
+
+      if (msg.type === "answer" && role === "broadcaster") {
+        const pc = peers.get(msg.from);
+        if (!pc) return;
+
+        await pc.setRemoteDescription(msg.data);
+        return;
+      }
+
+      if (msg.type === "candidate") {
+        const pc = peers.get(msg.from);
+        if (!pc) return;
+
+        try {
+          await pc.addIceCandidate(msg.data);
+        } catch (e) {
+          console.warn("ICE candidate error:", e);
         }
-    </script>
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  ws.onclose = () => {
+    setStatus("シグナリングサーバーから切断されました。");
+  };
+
+  ws.onerror = () => {
+    setStatus("WebSocket接続に失敗しました。");
+  };
+}
+
+async function startSharing() {
+  if (!window.isSecureContext) {
+    alert("画面共有にはHTTPSが必要です。RenderのHTTPS URLから開いてください。");
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    alert(
+      "このブラウザでは画面共有API(getDisplayMedia)が利用できません。"
+    );
+    return;
+  }
+
+  try {
+    localStream = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        frameRate: { ideal: 30, max: 60 }
+      },
+      audio: false
+    });
+
+    const track = localStream.getVideoTracks()[0];
+
+    track.addEventListener("ended", () => {
+      setStatus("画面共有が停止されました。");
+      cleanup();
+    });
+
+    room = (roomInput.value || randomRoom()).trim().toUpperCase();
+    role = "broadcaster";
+
+    openRoomPanel();
+    connect();
+
+    setStatus("画面共有中。視聴用URLを別端末で開いてください。");
+  } catch (error) {
+    console.error(error);
+    alert("画面共有を開始できませんでした: " + error.message);
+  }
+}
+
+function startViewing() {
+  room = roomInput.value.trim().toUpperCase();
+
+  if (!room) {
+    alert("ルームコードを入力してください。");
+    return;
+  }
+
+  role = "viewer";
+  openRoomPanel();
+  connect();
+
+  videos.classList.remove("hidden");
+  setStatus("配信端末を待っています...");
+}
+
+newRoomBtn.addEventListener("click", () => {
+  roomInput.value = randomRoom();
+});
+
+shareBtn.addEventListener("click", startSharing);
+viewBtn.addEventListener("click", startViewing);
+
+copyBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(shareUrlEl.textContent);
+    copyBtn.textContent = "コピーしました";
+    setTimeout(() => copyBtn.textContent = "視聴用URLをコピー", 1500);
+  } catch (_) {
+    alert(shareUrlEl.textContent);
+  }
+});
+
+stopBtn.addEventListener("click", () => {
+  cleanup();
+  location.href = location.pathname;
+});
+
+// URLから自動参加
+const params = new URLSearchParams(location.search);
+const urlRoom = params.get("room");
+const urlMode = params.get("mode");
+
+if (urlRoom) {
+  roomInput.value = urlRoom.toUpperCase();
+
+  if (urlMode === "view") {
+    setTimeout(startViewing, 150);
+  }
+}
+</script>
 </body>
 </html>

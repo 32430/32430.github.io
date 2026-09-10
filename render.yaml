@@ -1,10 +1,7 @@
 services:
   - type: web
-    name: my-searxng
-    env: docker
-    plan: free
-    buildCommand: ""
-    startCommand: ""
-    envVars:
-      - key: SEARXNG_BASE_URL
-        value: https://my-searxng.onrender.com/
+    name: screen-mirror
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
