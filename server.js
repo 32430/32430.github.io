@@ -15,6 +15,42 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "screen-mirroring" });
 });
 
+// ============================================================
+// Android クラッシュレポート受信
+// ============================================================
+app.post("/crash-report", (req, res) => {
+  try {
+    const report = req.body || {};
+
+    console.error("========================================");
+    console.error("ANDROID CRASH REPORT");
+    console.error("========================================");
+    console.error("Time:", new Date().toISOString());
+    console.error("Device:", report.device || "unknown");
+    console.error("Android:", report.androidVersion || "unknown");
+    console.error("App version:", report.appVersion || "unknown");
+    console.error("Room:", report.room || "unknown");
+    console.error("Stage:", report.stage || "unknown");
+    console.error("Exception:", report.exception || "unknown");
+    console.error("Message:", report.message || "unknown");
+    console.error("StackTrace:");
+    console.error(report.stackTrace || "unknown");
+    console.error("========================================");
+
+    res.json({
+      ok: true,
+      received: true
+    });
+  } catch (error) {
+    console.error("Crash report error:", error);
+
+    res.status(500).json({
+      ok: false,
+      message: "クラッシュレポートを処理できませんでした。"
+    });
+  }
+});
+
 // roomId -> { clients: Map<clientId, ws> }
 const rooms = new Map();
 
@@ -75,17 +111,25 @@ wss.on("connection", (ws) => {
           .toUpperCase()
           .slice(0, 32);
 
-        const role = data.role === "broadcaster" ? "broadcaster" : "viewer";
+        const role =
+          data.role === "broadcaster"
+            ? "broadcaster"
+            : "viewer";
 
         if (!roomId) {
-          send(ws, { type: "error", message: "ルームコードがありません。" });
+          send(ws, {
+            type: "error",
+            message: "ルームコードがありません。"
+          });
           return;
         }
 
         removeFromRoom(ws);
 
         if (!rooms.has(roomId)) {
-          rooms.set(roomId, { clients: new Map() });
+          rooms.set(roomId, {
+            clients: new Map()
+          });
         }
 
         const room = rooms.get(roomId);
@@ -93,7 +137,9 @@ wss.on("connection", (ws) => {
         // 1ルームにつき配信者は1台だけ。
         if (
           role === "broadcaster" &&
-          [...room.clients.values()].some((client) => client.role === "broadcaster")
+          [...room.clients.values()].some(
+            (client) => client.role === "broadcaster"
+          )
         ) {
           send(ws, {
             type: "error",
@@ -104,6 +150,7 @@ wss.on("connection", (ws) => {
 
         ws.roomId = roomId;
         ws.role = role;
+
         room.clients.set(ws.clientId, ws);
 
         send(ws, {
@@ -135,7 +182,9 @@ wss.on("connection", (ws) => {
 
       // WebRTC signaling:
       // offer / answer / candidate
-      if (["offer", "answer", "candidate"].includes(data.type)) {
+      if (
+        ["offer", "answer", "candidate"].includes(data.type)
+      ) {
         if (!ws.roomId || !data.to) return;
 
         const room = rooms.get(ws.roomId);
@@ -150,10 +199,15 @@ wss.on("connection", (ws) => {
         });
       }
     } catch (error) {
-      console.error("WebSocket message error:", error);
+      console.error(
+        "WebSocket message error:",
+        error
+      );
+
       send(ws, {
         type: "error",
-        message: "WebSocketメッセージを処理できませんでした。"
+        message:
+          "WebSocketメッセージを処理できませんでした。"
       });
     }
   });
@@ -171,5 +225,7 @@ wss.on("connection", (ws) => {
 const PORT = Number(process.env.PORT) || 3000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Screen mirroring server listening on port ${PORT}`);
+  console.log(
+    `Screen mirroring server listening on port ${PORT}`
+  );
 });
