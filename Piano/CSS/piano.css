@@ -1,0 +1,639 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background:
+        radial-gradient(circle at 50% 20%, #20283d 0%, #0d1018 55%, #07090d 100%);
+    color: #ffffff;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+/* =========================
+   App
+========================= */
+
+.app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* =========================
+   Top Bar
+========================= */
+
+.topbar {
+    height: 64px;
+    min-height: 64px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+
+    background: rgba(10, 13, 20, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    backdrop-filter: blur(12px);
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.title span:first-child {
+    font-size: 24px;
+}
+
+
+.file-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.file-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 38px;
+
+    padding: 0 16px;
+
+    border-radius: 9px;
+
+    background: #4c7dff;
+
+    cursor: pointer;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    transition:
+        transform 0.15s,
+        background 0.15s;
+}
+
+.file-button:hover {
+    background: #5d8aff;
+    transform: translateY(-1px);
+}
+
+.file-button:active {
+    transform: scale(0.97);
+}
+
+.file-button input {
+    display: none;
+}
+
+#fileName {
+    max-width: 240px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    color: #9ba4b8;
+
+    font-size: 13px;
+}
+
+
+/* =========================
+   Main
+========================= */
+
+.main {
+    flex: 1;
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* =========================
+   Visualizer
+========================= */
+
+.visualizer {
+    flex: 1;
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+/* =========================
+   Header
+========================= */
+
+.visualizer-header {
+    height: 42px;
+    min-height: 42px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0 16px;
+
+    background: rgba(8, 11, 18, 0.8);
+
+    color: #b7bfd0;
+
+    font-size: 13px;
+}
+
+#songName {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.time {
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* =========================
+   Note Area
+========================= */
+
+#noteArea {
+    position: relative;
+
+    flex: 1;
+
+    min-height: 0;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(255,255,255,0.025),
+            rgba(0,0,0,0.18)
+        );
+}
+
+
+/* Vertical piano guides */
+
+#noteArea::before {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    opacity: 0.15;
+
+    background-image:
+        linear-gradient(
+            to right,
+            transparent 0,
+            transparent calc(100% - 1px),
+            rgba(255,255,255,0.15) calc(100% - 1px)
+        );
+
+    background-size: 3.125% 100%;
+}
+
+
+/* =========================
+   Hit Line
+========================= */
+
+.hit-line {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    bottom: 0;
+
+    height: 5px;
+
+    z-index: 50;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 8px #ffffff,
+        0 0 20px rgba(80, 160, 255, 0.8);
+}
+
+.hit-glow {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    bottom: 0;
+
+    height: 70px;
+
+    transform: translateY(100%);
+
+    background:
+        linear-gradient(
+            to top,
+            rgba(70, 140, 255, 0.35),
+            transparent
+        );
+
+    pointer-events: none;
+}
+
+
+/* =========================
+   Notes
+========================= */
+
+#notes {
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+}
+
+.note {
+    position: absolute;
+
+    border-radius: 5px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #71a8ff,
+            #3578ff
+        );
+
+    box-shadow:
+        0 0 7px rgba(70, 140, 255, 0.9),
+        inset 0 0 5px rgba(255,255,255,0.35);
+
+    opacity: 0.95;
+
+    will-change: transform;
+}
+
+.note.black {
+    background:
+        linear-gradient(
+            to bottom,
+            #b780ff,
+            #7139d8
+        );
+
+    box-shadow:
+        0 0 7px rgba(150, 80, 255, 0.9),
+        inset 0 0 5px rgba(255,255,255,0.35);
+}
+
+
+/* =========================
+   Piano
+========================= */
+
+.piano {
+    position: relative;
+
+    height: 150px;
+    min-height: 150px;
+
+    width: 100%;
+
+    display: flex;
+
+    background: #050608;
+
+    border-top: 3px solid #222938;
+
+    user-select: none;
+    touch-action: none;
+}
+
+
+/* White keys */
+
+.white-key {
+    position: relative;
+
+    height: 100%;
+
+    flex: 1;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #ffffff 0%,
+            #f1f1f1 75%,
+            #cfcfcf 100%
+        );
+
+    border-right: 1px solid #8d8d8d;
+
+    cursor: pointer;
+
+    transition:
+        background 0.05s,
+        transform 0.05s;
+}
+
+.white-key:hover {
+    background:
+        linear-gradient(
+            to bottom,
+            #ffffff,
+            #dce8ff
+        );
+}
+
+.white-key.active {
+    background:
+        linear-gradient(
+            to bottom,
+            #bcd5ff,
+            #709dff
+        );
+
+    transform: translateY(3px);
+}
+
+
+/* Black keys */
+
+.black-key {
+    position: absolute;
+
+    top: 0;
+
+    height: 62%;
+
+    width: 2.2%;
+
+    z-index: 10;
+
+    border-radius: 0 0 5px 5px;
+
+    background:
+        linear-gradient(
+            to right,
+            #111111,
+            #303030 45%,
+            #050505
+        );
+
+    box-shadow:
+        0 5px 5px rgba(0,0,0,0.55);
+
+    cursor: pointer;
+
+    transition:
+        background 0.05s,
+        transform 0.05s;
+}
+
+.black-key:hover {
+    background:
+        linear-gradient(
+            to right,
+            #202020,
+            #444444 45%,
+            #101010
+        );
+}
+
+.black-key.active {
+    background:
+        linear-gradient(
+            to right,
+            #476db8,
+            #243e79,
+            #18284c
+        );
+
+    transform: translateY(3px);
+}
+
+
+/* =========================
+   Controls
+========================= */
+
+.controls {
+    height: 66px;
+    min-height: 66px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 15px;
+
+    background: rgba(10, 13, 20, 0.95);
+
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.control-button {
+    height: 38px;
+
+    padding: 0 15px;
+
+    border: 0;
+    border-radius: 8px;
+
+    color: #ffffff;
+
+    background: #20283a;
+
+    cursor: pointer;
+
+    font-weight: 600;
+
+    transition:
+        background 0.15s,
+        transform 0.1s;
+}
+
+.control-button:hover {
+    background: #2d3952;
+}
+
+.control-button:active {
+    transform: scale(0.96);
+}
+
+.volume {
+    margin-left: auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+#volume {
+    width: 120px;
+}
+
+
+/* =========================
+   Progress
+========================= */
+
+.progress-section {
+    height: 12px;
+    min-height: 12px;
+
+    background: #090b10;
+}
+
+#progress {
+    display: block;
+
+    width: 100%;
+    height: 12px;
+
+    margin: 0;
+
+    appearance: none;
+
+    background: #171c27;
+
+    cursor: pointer;
+}
+
+#progress::-webkit-slider-thumb {
+    appearance: none;
+
+    width: 12px;
+    height: 12px;
+
+    border-radius: 50%;
+
+    background: #6e9bff;
+}
+
+#progress::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+
+    border: 0;
+    border-radius: 50%;
+
+    background: #6e9bff;
+}
+
+
+/* =========================
+   Info
+========================= */
+
+.info {
+    display: none;
+}
+
+
+/* =========================
+   Mobile / iPad
+========================= */
+
+@media (max-width: 700px) {
+
+    .topbar {
+        height: auto;
+        min-height: 64px;
+
+        flex-wrap: wrap;
+
+        gap: 8px;
+
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 15px;
+    }
+
+    .file-area {
+        width: 100%;
+    }
+
+    .file-button {
+        flex: 1;
+    }
+
+    #fileName {
+        max-width: 40%;
+    }
+
+    .visualizer-header {
+        height: 36px;
+        min-height: 36px;
+    }
+
+    .piano {
+        height: 125px;
+        min-height: 125px;
+    }
+
+    .controls {
+        height: 58px;
+        min-height: 58px;
+
+        padding: 0 8px;
+
+        gap: 5px;
+    }
+
+    .control-button {
+        padding: 0 9px;
+
+        font-size: 12px;
+    }
+
+    .volume {
+        display: none;
+    }
+}
