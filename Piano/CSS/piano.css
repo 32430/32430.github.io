@@ -4,82 +4,124 @@
     padding: 0;
 }
 
+
 html,
 body {
+
     width: 100%;
     height: 100%;
+
     overflow: hidden;
+
 }
 
+
 body {
+
     background:
-        radial-gradient(circle at 50% 20%, #20283d 0%, #0d1018 55%, #07090d 100%);
+        radial-gradient(
+            circle at 50% 20%,
+            #20283d 0%,
+            #0d1018 55%,
+            #07090d 100%
+        );
+
     color: #ffffff;
+
     font-family:
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         sans-serif;
+
 }
 
 
-/* =========================
-   App
-========================= */
+/* =========================================================
+   APP
+========================================================= */
 
 .app {
+
     width: 100%;
     height: 100%;
+
     display: flex;
     flex-direction: column;
+
 }
 
 
-/* =========================
-   Top Bar
-========================= */
+/* =========================================================
+   TOP BAR
+========================================================= */
 
 .topbar {
+
     height: 64px;
     min-height: 64px;
 
     display: flex;
+
     align-items: center;
+
     justify-content: space-between;
 
     padding: 0 20px;
 
-    background: rgba(10, 13, 20, 0.92);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+        rgba(10, 13, 20, 0.92);
 
-    backdrop-filter: blur(12px);
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.08);
+
+    backdrop-filter:
+        blur(12px);
+
 }
 
+
 .title {
+
     display: flex;
+
     align-items: center;
+
     gap: 10px;
 
     font-size: 18px;
+
     font-weight: 700;
+
 }
 
+
 .title span:first-child {
+
     font-size: 24px;
+
 }
 
 
 .file-area {
+
     display: flex;
+
     align-items: center;
+
     gap: 12px;
 
     min-width: 0;
+
 }
 
+
 .file-button {
+
     display: inline-flex;
+
     align-items: center;
+
     justify-content: center;
 
     height: 38px;
@@ -93,107 +135,147 @@ body {
     cursor: pointer;
 
     font-size: 14px;
+
     font-weight: 600;
 
     transition:
         transform 0.15s,
         background 0.15s;
+
 }
+
 
 .file-button:hover {
+
     background: #5d8aff;
-    transform: translateY(-1px);
+
+    transform:
+        translateY(-1px);
+
 }
+
 
 .file-button:active {
-    transform: scale(0.97);
+
+    transform:
+        scale(0.97);
+
 }
+
 
 .file-button input {
+
     display: none;
+
 }
 
+
 #fileName {
+
     max-width: 240px;
 
     overflow: hidden;
+
     text-overflow: ellipsis;
+
     white-space: nowrap;
 
     color: #9ba4b8;
 
     font-size: 13px;
+
 }
 
 
-/* =========================
-   Main
-========================= */
+/* =========================================================
+   MAIN
+========================================================= */
 
 .main {
+
     flex: 1;
 
     min-height: 0;
 
     display: flex;
+
     flex-direction: column;
+
 }
 
 
-/* =========================
-   Visualizer
-========================= */
+/* =========================================================
+   VISUALIZER
+========================================================= */
 
 .visualizer {
+
     flex: 1;
 
     min-height: 0;
 
     display: flex;
+
     flex-direction: column;
 
     position: relative;
 
     overflow: hidden;
+
 }
 
 
-/* =========================
-   Header
-========================= */
+/* =========================================================
+   VISUALIZER HEADER
+========================================================= */
 
 .visualizer-header {
+
     height: 42px;
+
     min-height: 42px;
 
     display: flex;
+
     justify-content: space-between;
+
     align-items: center;
 
     padding: 0 16px;
 
-    background: rgba(8, 11, 18, 0.8);
+    background:
+        rgba(8, 11, 18, 0.8);
 
     color: #b7bfd0;
 
     font-size: 13px;
+
 }
+
 
 #songName {
+
     color: #ffffff;
+
     font-weight: 600;
+
 }
+
 
 .time {
-    font-variant-numeric: tabular-nums;
+
+    font-variant-numeric:
+        tabular-nums;
+
 }
 
 
-/* =========================
-   Note Area
-========================= */
+/* =========================================================
+   NOTE AREA
+========================================================= */
 
 #noteArea {
+
     position: relative;
 
     flex: 1;
@@ -208,12 +290,14 @@ body {
             rgba(255,255,255,0.025),
             rgba(0,0,0,0.18)
         );
+
 }
 
 
-/* Vertical piano guides */
+/* Piano lane lines */
 
 #noteArea::before {
+
     content: "";
 
     position: absolute;
@@ -229,18 +313,22 @@ body {
             to right,
             transparent 0,
             transparent calc(100% - 1px),
-            rgba(255,255,255,0.15) calc(100% - 1px)
+            rgba(255,255,255,0.15)
+                calc(100% - 1px)
         );
 
-    background-size: 3.125% 100%;
+    background-size:
+        3.125% 100%;
+
 }
 
 
-/* =========================
-   Hit Line
-========================= */
+/* =========================================================
+   HIT LINE
+========================================================= */
 
 .hit-line {
+
     position: absolute;
 
     left: 0;
@@ -257,9 +345,12 @@ body {
     box-shadow:
         0 0 8px #ffffff,
         0 0 20px rgba(80, 160, 255, 0.8);
+
 }
 
+
 .hit-glow {
+
     position: absolute;
 
     left: 0;
@@ -269,7 +360,8 @@ body {
 
     height: 70px;
 
-    transform: translateY(100%);
+    transform:
+        translateY(100%);
 
     background:
         linear-gradient(
@@ -279,22 +371,27 @@ body {
         );
 
     pointer-events: none;
+
 }
 
 
-/* =========================
-   Notes
-========================= */
+/* =========================================================
+   NOTES
+========================================================= */
 
 #notes {
+
     position: absolute;
 
     inset: 0;
 
     pointer-events: none;
+
 }
 
+
 .note {
+
     position: absolute;
 
     border-radius: 5px;
@@ -312,10 +409,14 @@ body {
 
     opacity: 0.95;
 
-    will-change: transform;
+    will-change:
+        transform;
+
 }
 
+
 .note.black {
+
     background:
         linear-gradient(
             to bottom,
@@ -326,17 +427,20 @@ body {
     box-shadow:
         0 0 7px rgba(150, 80, 255, 0.9),
         inset 0 0 5px rgba(255,255,255,0.35);
+
 }
 
 
-/* =========================
-   Piano
-========================= */
+/* =========================================================
+   PIANO
+========================================================= */
 
 .piano {
+
     position: relative;
 
     height: 150px;
+
     min-height: 150px;
 
     width: 100%;
@@ -345,16 +449,22 @@ body {
 
     background: #050608;
 
-    border-top: 3px solid #222938;
+    border-top:
+        3px solid #222938;
 
     user-select: none;
+
     touch-action: none;
+
 }
 
 
-/* White keys */
+/* =========================================================
+   WHITE KEYS
+========================================================= */
 
 .white-key {
+
     position: relative;
 
     height: 100%;
@@ -369,25 +479,32 @@ body {
             #cfcfcf 100%
         );
 
-    border-right: 1px solid #8d8d8d;
+    border-right:
+        1px solid #8d8d8d;
 
     cursor: pointer;
 
     transition:
         background 0.05s,
         transform 0.05s;
+
 }
 
+
 .white-key:hover {
+
     background:
         linear-gradient(
             to bottom,
             #ffffff,
             #dce8ff
         );
+
 }
 
+
 .white-key.active {
+
     background:
         linear-gradient(
             to bottom,
@@ -395,13 +512,18 @@ body {
             #709dff
         );
 
-    transform: translateY(3px);
+    transform:
+        translateY(3px);
+
 }
 
 
-/* Black keys */
+/* =========================================================
+   BLACK KEYS
+========================================================= */
 
 .black-key {
+
     position: absolute;
 
     top: 0;
@@ -412,7 +534,8 @@ body {
 
     z-index: 10;
 
-    border-radius: 0 0 5px 5px;
+    border-radius:
+        0 0 5px 5px;
 
     background:
         linear-gradient(
@@ -430,9 +553,12 @@ body {
     transition:
         background 0.05s,
         transform 0.05s;
+
 }
 
+
 .black-key:hover {
+
     background:
         linear-gradient(
             to right,
@@ -440,9 +566,12 @@ body {
             #444444 45%,
             #101010
         );
+
 }
 
+
 .black-key.active {
+
     background:
         linear-gradient(
             to right,
@@ -451,36 +580,47 @@ body {
             #18284c
         );
 
-    transform: translateY(3px);
+    transform:
+        translateY(3px);
+
 }
 
 
-/* =========================
-   Controls
-========================= */
+/* =========================================================
+   CONTROLS
+========================================================= */
 
 .controls {
+
     height: 66px;
+
     min-height: 66px;
 
     display: flex;
+
     align-items: center;
 
     gap: 10px;
 
     padding: 0 15px;
 
-    background: rgba(10, 13, 20, 0.95);
+    background:
+        rgba(10, 13, 20, 0.95);
 
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top:
+        1px solid rgba(255,255,255,0.08);
+
 }
 
+
 .control-button {
+
     height: 38px;
 
     padding: 0 15px;
 
     border: 0;
+
     border-radius: 8px;
 
     color: #ffffff;
@@ -494,45 +634,66 @@ body {
     transition:
         background 0.15s,
         transform 0.1s;
+
 }
+
 
 .control-button:hover {
+
     background: #2d3952;
+
 }
+
 
 .control-button:active {
-    transform: scale(0.96);
+
+    transform:
+        scale(0.96);
+
 }
 
+
 .volume {
+
     margin-left: auto;
 
     display: flex;
+
     align-items: center;
 
     gap: 8px;
+
 }
+
 
 #volume {
+
     width: 120px;
+
 }
 
 
-/* =========================
-   Progress
-========================= */
+/* =========================================================
+   PROGRESS
+========================================================= */
 
 .progress-section {
+
     height: 12px;
+
     min-height: 12px;
 
     background: #090b10;
+
 }
 
+
 #progress {
+
     display: block;
 
     width: 100%;
+
     height: 12px;
 
     margin: 0;
@@ -542,47 +703,51 @@ body {
     background: #171c27;
 
     cursor: pointer;
+
 }
 
+
 #progress::-webkit-slider-thumb {
+
     appearance: none;
 
     width: 12px;
+
     height: 12px;
 
     border-radius: 50%;
 
     background: #6e9bff;
+
 }
 
+
 #progress::-moz-range-thumb {
+
     width: 12px;
+
     height: 12px;
 
     border: 0;
+
     border-radius: 50%;
 
     background: #6e9bff;
+
 }
 
 
-/* =========================
-   Info
-========================= */
-
-.info {
-    display: none;
-}
-
-
-/* =========================
-   Mobile / iPad
-========================= */
+/* =========================================================
+   MOBILE / iPAD
+========================================================= */
 
 @media (max-width: 700px) {
 
+
     .topbar {
+
         height: auto;
+
         min-height: 64px;
 
         flex-wrap: wrap;
@@ -590,50 +755,82 @@ body {
         gap: 8px;
 
         padding: 10px;
+
     }
+
 
     .title {
+
         font-size: 15px;
+
     }
+
 
     .file-area {
+
         width: 100%;
+
     }
+
 
     .file-button {
+
         flex: 1;
+
     }
+
 
     #fileName {
+
         max-width: 40%;
+
     }
+
 
     .visualizer-header {
+
         height: 36px;
+
         min-height: 36px;
+
     }
+
 
     .piano {
+
         height: 125px;
+
         min-height: 125px;
+
     }
 
+
     .controls {
+
         height: 58px;
+
         min-height: 58px;
 
         padding: 0 8px;
 
         gap: 5px;
+
     }
 
+
     .control-button {
+
         padding: 0 9px;
 
         font-size: 12px;
+
     }
 
+
     .volume {
+
         display: none;
+
     }
+
 }
