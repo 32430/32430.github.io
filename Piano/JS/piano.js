@@ -1,48 +1,81 @@
 "use strict";
 
+/*
+ * =========================================================
+ * MIDI
+ * =========================================================
+ *
+ * @tonejs/midi をES Moduleとして読み込む
+ *
+ */
 
-/* =========================================================
-   Configuration
-========================================================= */
+import { Midi } from "https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/+esm";
+
+
+/*
+ * =========================================================
+ * CONFIGURATION
+ * =========================================================
+ */
 
 const MIN_MIDI = 21;   // A0
 const MAX_MIDI = 108;  // C8
 
-const NOTE_COUNT = MAX_MIDI - MIN_MIDI + 1;
-
 /*
- * ノートが画面上部に出てから鍵盤まで到達するまでの秒数
+ * ノートが画面上部から鍵盤まで
+ * 落下する時間
  */
 const FALL_TIME = 3.0;
 
 
-/* =========================================================
-   DOM
-========================================================= */
+/*
+ * =========================================================
+ * DOM
+ * =========================================================
+ */
 
-const midiFileInput = document.getElementById("midiFile");
-const fileNameElement = document.getElementById("fileName");
+const midiFileInput =
+    document.getElementById("midiFile");
 
-const songNameElement = document.getElementById("songName");
+const fileNameElement =
+    document.getElementById("fileName");
 
-const notesElement = document.getElementById("notes");
-const pianoElement = document.getElementById("piano");
+const songNameElement =
+    document.getElementById("songName");
 
-const playButton = document.getElementById("playButton");
-const pauseButton = document.getElementById("pauseButton");
-const stopButton = document.getElementById("stopButton");
+const notesElement =
+    document.getElementById("notes");
 
-const progressElement = document.getElementById("progress");
+const pianoElement =
+    document.getElementById("piano");
 
-const currentTimeElement = document.getElementById("currentTime");
-const totalTimeElement = document.getElementById("totalTime");
+const playButton =
+    document.getElementById("playButton");
 
-const volumeElement = document.getElementById("volume");
+const pauseButton =
+    document.getElementById("pauseButton");
+
+const stopButton =
+    document.getElementById("stopButton");
+
+const progressElement =
+    document.getElementById("progress");
+
+const currentTimeElement =
+    document.getElementById("currentTime");
+
+const totalTimeElement =
+    document.getElementById("totalTime");
+
+const volumeElement =
+    document.getElementById("volume");
 
 
-/* =========================================================
-   State
-========================================================= */
+/*
+ * =========================================================
+ * STATE
+ * =========================================================
+ */
 
 let midi = null;
 
@@ -63,28 +96,22 @@ let lastPlayedNotes = new Set();
 let manuallyPressedKeys = new Set();
 
 
-/* =========================================================
-   Tone.js
-========================================================= */
+/*
+ * =========================================================
+ * AUDIO
+ * =========================================================
+ */
 
 let synth = null;
 
 let volumeNode = null;
 
 
-/* =========================================================
-   Piano Layout
-========================================================= */
-
-const whiteNotes = [
-    0,  // C
-    2,  // D
-    4,  // E
-    5,  // F
-    7,  // G
-    9,  // A
-    11  // B
-];
+/*
+ * =========================================================
+ * PIANO
+ * =========================================================
+ */
 
 const blackNotes = [
     1,  // C#
@@ -98,21 +125,32 @@ const blackNotes = [
 const keyElements = new Map();
 
 
-/* =========================================================
-   Utility
-========================================================= */
+/*
+ * =========================================================
+ * UTILITY
+ * =========================================================
+ */
 
 function formatTime(seconds) {
 
     if (!Number.isFinite(seconds)) {
+
         return "00:00";
+
     }
 
-    seconds = Math.max(0, seconds);
 
-    const minutes = Math.floor(seconds / 60);
+    seconds =
+        Math.max(0, seconds);
 
-    const secs = Math.floor(seconds % 60);
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+
+    const secs =
+        Math.floor(seconds % 60);
+
 
     return (
         String(minutes).padStart(2, "0") +
@@ -125,6 +163,7 @@ function formatTime(seconds) {
 function midiToNoteName(midiNumber) {
 
     const names = [
+
         "C",
         "C#",
         "D",
@@ -137,23 +176,35 @@ function midiToNoteName(midiNumber) {
         "A",
         "A#",
         "B"
+
     ];
 
-    const octave = Math.floor(midiNumber / 12) - 1;
 
-    return names[midiNumber % 12] + octave;
+    const octave =
+        Math.floor(midiNumber / 12) - 1;
+
+
+    return (
+        names[midiNumber % 12] +
+        octave
+    );
 }
 
 
 function isBlackKey(midiNumber) {
 
-    return blackNotes.includes(midiNumber % 12);
+    return blackNotes.includes(
+        midiNumber % 12
+    );
+
 }
 
 
-/* =========================================================
-   Create Piano
-========================================================= */
+/*
+ * =========================================================
+ * PIANO CREATION
+ * =========================================================
+ */
 
 function createPiano() {
 
@@ -161,7 +212,9 @@ function createPiano() {
 
     keyElements.clear();
 
+
     const whiteMidiNumbers = [];
+
 
     for (
         let midiNumber = MIN_MIDI;
@@ -170,40 +223,67 @@ function createPiano() {
     ) {
 
         if (!isBlackKey(midiNumber)) {
-            whiteMidiNumbers.push(midiNumber);
+
+            whiteMidiNumbers.push(
+                midiNumber
+            );
+
         }
+
     }
 
 
     /*
-     * 白鍵
+     * WHITE KEYS
      */
 
-    whiteMidiNumbers.forEach((midiNumber) => {
+    whiteMidiNumbers.forEach(
+        (midiNumber) => {
 
-        const key = document.createElement("div");
+            const key =
+                document.createElement("div");
 
-        key.className = "white-key";
 
-        key.dataset.midi = midiNumber;
+            key.className =
+                "white-key";
 
-        key.title = midiToNoteName(midiNumber);
 
-        pianoElement.appendChild(key);
+            key.dataset.midi =
+                midiNumber;
 
-        keyElements.set(midiNumber, key);
 
-        setupKeyEvents(key, midiNumber);
-    });
+            key.title =
+                midiToNoteName(midiNumber);
+
+
+            pianoElement.appendChild(key);
+
+
+            keyElements.set(
+                midiNumber,
+                key
+            );
+
+
+            setupKeyEvents(
+                key,
+                midiNumber
+            );
+
+        }
+    );
 
 
     /*
-     * 黒鍵
+     * BLACK KEYS
      */
 
-    const whiteKeyCount = whiteMidiNumbers.length;
+    const whiteKeyCount =
+        whiteMidiNumbers.length;
 
-    const whiteKeyWidth = 100 / whiteKeyCount;
+
+    const whiteKeyWidth =
+        100 / whiteKeyCount;
 
 
     for (
@@ -212,16 +292,17 @@ function createPiano() {
         midiNumber++
     ) {
 
-        if (!isBlackKey(midiNumber)) {
+        if (
+            !isBlackKey(midiNumber)
+        ) {
+
             continue;
+
         }
 
 
-        /*
-         * 黒鍵の左側にある白鍵を探す
-         */
-
         let previousWhiteCount = 0;
+
 
         for (
             let m = MIN_MIDI;
@@ -230,206 +311,376 @@ function createPiano() {
         ) {
 
             if (!isBlackKey(m)) {
+
                 previousWhiteCount++;
+
             }
+
         }
 
 
-        const key = document.createElement("div");
+        const key =
+            document.createElement("div");
 
-        key.className = "black-key";
 
-        key.dataset.midi = midiNumber;
+        key.className =
+            "black-key";
 
-        key.title = midiToNoteName(midiNumber);
 
-        /*
-         * 白鍵と白鍵の境界に配置
-         */
+        key.dataset.midi =
+            midiNumber;
+
+
+        key.title =
+            midiToNoteName(midiNumber);
+
 
         const left =
-            previousWhiteCount * whiteKeyWidth -
+            previousWhiteCount *
+                whiteKeyWidth -
             whiteKeyWidth * 0.30;
 
 
-        key.style.left = `${left}%`;
+        key.style.left =
+            `${left}%`;
+
 
         pianoElement.appendChild(key);
 
-        keyElements.set(midiNumber, key);
 
-        setupKeyEvents(key, midiNumber);
+        keyElements.set(
+            midiNumber,
+            key
+        );
+
+
+        setupKeyEvents(
+            key,
+            midiNumber
+        );
+
     }
+
 }
 
 
-/* =========================================================
-   Piano Key Events
-========================================================= */
+/*
+ * =========================================================
+ * MANUAL KEY
+ * =========================================================
+ */
 
-function setupKeyEvents(element, midiNumber) {
-
-    element.addEventListener("pointerdown", async (event) => {
-
-        event.preventDefault();
-
-        await startAudio();
-
-        pressKey(midiNumber);
-    });
+function setupKeyEvents(
+    element,
+    midiNumber
+) {
 
 
-    element.addEventListener("pointerup", (event) => {
+    element.addEventListener(
+        "pointerdown",
+        async (event) => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        releaseKey(midiNumber);
-    });
+            await startAudio();
 
+            pressKey(midiNumber);
 
-    element.addEventListener("pointercancel", () => {
-
-        releaseKey(midiNumber);
-    });
-
-
-    element.addEventListener("pointerleave", () => {
-
-        /*
-         * マウスで押したまま外へ出た場合
-         */
-
-        if (manuallyPressedKeys.has(midiNumber)) {
-            releaseKey(midiNumber);
         }
-    });
+    );
+
+
+    element.addEventListener(
+        "pointerup",
+        (event) => {
+
+            event.preventDefault();
+
+            releaseKey(midiNumber);
+
+        }
+    );
+
+
+    element.addEventListener(
+        "pointercancel",
+        () => {
+
+            releaseKey(midiNumber);
+
+        }
+    );
+
+
+    element.addEventListener(
+        "pointerleave",
+        () => {
+
+            if (
+                manuallyPressedKeys.has(
+                    midiNumber
+                )
+            ) {
+
+                releaseKey(
+                    midiNumber
+                );
+
+            }
+
+        }
+    );
+
 }
 
 
-async function pressKey(midiNumber) {
+async function pressKey(
+    midiNumber
+) {
 
-    if (manuallyPressedKeys.has(midiNumber)) {
+    if (
+        manuallyPressedKeys.has(
+            midiNumber
+        )
+    ) {
+
         return;
+
     }
 
-    manuallyPressedKeys.add(midiNumber);
 
-    const element = keyElements.get(midiNumber);
+    manuallyPressedKeys.add(
+        midiNumber
+    );
+
+
+    const element =
+        keyElements.get(
+            midiNumber
+        );
+
 
     if (element) {
-        element.classList.add("active");
+
+        element.classList.add(
+            "active"
+        );
+
     }
+
 
     if (!synth) {
+
         await startAudio();
+
     }
 
-    const noteName = midiToNoteName(midiNumber);
 
-    synth.triggerAttack(noteName);
+    const noteName =
+        midiToNoteName(
+            midiNumber
+        );
+
+
+    synth.triggerAttack(
+        noteName
+    );
+
 }
 
 
-function releaseKey(midiNumber) {
+function releaseKey(
+    midiNumber
+) {
 
-    if (!manuallyPressedKeys.has(midiNumber)) {
+    if (
+        !manuallyPressedKeys.has(
+            midiNumber
+        )
+    ) {
+
         return;
+
     }
 
-    manuallyPressedKeys.delete(midiNumber);
 
-    const element = keyElements.get(midiNumber);
+    manuallyPressedKeys.delete(
+        midiNumber
+    );
+
+
+    const element =
+        keyElements.get(
+            midiNumber
+        );
+
 
     if (element) {
-        element.classList.remove("active");
+
+        element.classList.remove(
+            "active"
+        );
+
     }
+
 
     if (synth) {
 
-        const noteName = midiToNoteName(midiNumber);
+        const noteName =
+            midiToNoteName(
+                midiNumber
+            );
 
-        synth.triggerRelease(noteName);
+
+        synth.triggerRelease(
+            noteName
+        );
+
     }
+
 }
 
 
-/* =========================================================
-   Audio
-========================================================= */
+/*
+ * =========================================================
+ * AUDIO
+ * =========================================================
+ */
 
 async function startAudio() {
 
+    /*
+     * Safari / iPadOSなどでは
+     * ユーザー操作からAudioContextを開始する
+     */
+
     await Tone.start();
 
+
     if (synth) {
+
         return;
+
     }
 
 
-    volumeNode = new Tone.Volume(
-        Tone.gainToDb(Number(volumeElement.value))
-    ).toDestination();
+    volumeNode =
+        new Tone.Volume(
+            Tone.gainToDb(
+                Number(
+                    volumeElement.value
+                )
+            )
+        ).toDestination();
 
 
-    synth = new Tone.PolySynth(Tone.Synth, {
+    synth =
+        new Tone.PolySynth(
+            Tone.Synth,
+            {
 
-        oscillator: {
-            type: "triangle"
-        },
+                oscillator: {
 
-        envelope: {
-            attack: 0.005,
-            decay: 0.15,
-            sustain: 0.5,
-            release: 0.8
-        }
+                    type: "triangle"
 
-    }).connect(volumeNode);
+                },
+
+                envelope: {
+
+                    attack: 0.005,
+
+                    decay: 0.15,
+
+                    sustain: 0.5,
+
+                    release: 0.8
+
+                }
+
+            }
+        ).connect(
+            volumeNode
+        );
+
 }
 
 
-volumeElement.addEventListener("input", () => {
+volumeElement.addEventListener(
+    "input",
+    () => {
 
-    if (!volumeNode) {
-        return;
+        if (!volumeNode) {
+
+            return;
+
+        }
+
+
+        volumeNode.volume.value =
+            Tone.gainToDb(
+                Number(
+                    volumeElement.value
+                )
+            );
+
     }
-
-    volumeNode.volume.value =
-        Tone.gainToDb(Number(volumeElement.value));
-});
+);
 
 
-/* =========================================================
-   MIDI Loading
-========================================================= */
+/*
+ * =========================================================
+ * MIDI FILE LOADING
+ * =========================================================
+ */
 
-midiFileInput.addEventListener("change", async (event) => {
+midiFileInput.addEventListener(
+    "change",
+    async (event) => {
 
-    const file = event.target.files[0];
+        const file =
+            event.target.files[0];
 
-    if (!file) {
-        return;
+
+        if (!file) {
+
+            return;
+
+        }
+
+
+        try {
+
+            await loadMidi(file);
+
+        } catch (error) {
+
+            console.error(
+                "MIDI loading error:",
+                error
+            );
+
+
+            alert(
+                "MIDIファイルの読み込みに失敗しました。\n\n" +
+                error.message
+            );
+
+        }
+
     }
+);
 
-    try {
 
-        await loadMidi(file);
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            "MIDIファイルの読み込みに失敗しました。\n\n" +
-            error.message
-        );
-    }
-});
-
+/*
+ * =========================================================
+ * LOAD MIDI
+ * =========================================================
+ */
 
 async function loadMidi(file) {
 
     stopPlayback();
+
 
     notesElement.innerHTML = "";
 
@@ -437,11 +688,29 @@ async function loadMidi(file) {
 
     notes = [];
 
-    fileNameElement.textContent = file.name;
 
-    const arrayBuffer = await file.arrayBuffer();
+    fileNameElement.textContent =
+        file.name;
 
-    midi = new Midi.Midi(arrayBuffer);
+
+    /*
+     * ArrayBuffer
+     */
+
+    const arrayBuffer =
+        await file.arrayBuffer();
+
+
+    /*
+     * IMPORTANT
+     *
+     * ここが前回と違います。
+     *
+     * new Midi(arrayBuffer)
+     */
+
+    midi =
+        new Midi(arrayBuffer);
 
 
     /*
@@ -450,100 +719,179 @@ async function loadMidi(file) {
 
     const title =
         midi.name ||
-        file.name.replace(/\.(mid|midi)$/i, "");
+        file.name.replace(
+            /\.(mid|midi)$/i,
+            ""
+        );
 
-    songNameElement.textContent = title;
+
+    songNameElement.textContent =
+        title;
 
 
     /*
-     * MIDIの全トラックからノートを取得
+     * 全トラック
      */
 
-    midi.tracks.forEach(track => {
+    midi.tracks.forEach(
+        (track) => {
 
-        track.notes.forEach(note => {
+            track.notes.forEach(
+                (note) => {
 
-            /*
-             * ピアノ範囲だけに制限
-             */
+                    /*
+                     * ピアノ範囲外を除外
+                     */
+
+                    if (
+                        note.midi < MIN_MIDI ||
+                        note.midi > MAX_MIDI
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    notes.push({
+
+                        midi: note.midi,
+
+                        name:
+                            note.name ||
+                            midiToNoteName(
+                                note.midi
+                            ),
+
+                        time: note.time,
+
+                        duration:
+                            note.duration,
+
+                        velocity:
+                            note.velocity ??
+                            0.8
+
+                    });
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+     * 時間順
+     */
+
+    notes.sort(
+        (a, b) => {
 
             if (
-                note.midi < MIN_MIDI ||
-                note.midi > MAX_MIDI
+                a.time !== b.time
             ) {
-                return;
+
+                return (
+                    a.time -
+                    b.time
+                );
+
             }
 
 
-            notes.push({
+            return (
+                a.midi -
+                b.midi
+            );
 
-                midi: note.midi,
-
-                name: note.name,
-
-                time: note.time,
-
-                duration: note.duration,
-
-                velocity: note.velocity ?? 0.8
-
-            });
-        });
-    });
-
-
-    /*
-     * 時間順に並べる
-     */
-
-    notes.sort((a, b) => {
-
-        if (a.time !== b.time) {
-            return a.time - b.time;
         }
-
-        return a.midi - b.midi;
-    });
+    );
 
 
     /*
-     * 曲の長さ
+     * MIDI duration
      */
 
-    let duration = midi.duration;
+    let duration =
+        midi.duration;
 
-    if (!Number.isFinite(duration)) {
+
+    /*
+     * 念のため
+     */
+
+    if (
+        !Number.isFinite(duration) ||
+        duration <= 0
+    ) {
 
         duration = 0;
 
-        notes.forEach(note => {
 
-            duration = Math.max(
-                duration,
-                note.time + note.duration
-            );
-        });
+        notes.forEach(
+            (note) => {
+
+                duration =
+                    Math.max(
+                        duration,
+                        note.time +
+                        note.duration
+                    );
+
+            }
+        );
+
     }
 
 
-    totalTimeElement.textContent = formatTime(duration);
+    totalTimeElement.textContent =
+        formatTime(duration);
 
-    progressElement.value = 0;
+
+    currentTimeElement.textContent =
+        "00:00";
+
+
+    progressElement.value =
+        0;
+
 
     pausedTime = 0;
 
 
+    /*
+     * ノートを作成
+     */
+
     createNoteElements();
 
-    console.log("MIDI loaded:", midi);
 
-    console.log("Notes:", notes.length);
+    console.log(
+        "MIDI loaded:",
+        midi
+    );
+
+
+    console.log(
+        "Tracks:",
+        midi.tracks.length
+    );
+
+
+    console.log(
+        "Notes:",
+        notes.length
+    );
+
 }
 
 
-/* =========================================================
-   Note Visuals
-========================================================= */
+/*
+ * =========================================================
+ * NOTE VISUALS
+ * =========================================================
+ */
 
 function createNoteElements() {
 
@@ -552,86 +900,127 @@ function createNoteElements() {
     noteElements = [];
 
 
-    notes.forEach((note) => {
+    notes.forEach(
+        (note) => {
 
-        const element = document.createElement("div");
+            const element =
+                document.createElement("div");
 
-        element.className = "note";
 
-        if (isBlackKey(note.midi)) {
-            element.classList.add("black");
+            element.className =
+                "note";
+
+
+            if (
+                isBlackKey(
+                    note.midi
+                )
+            ) {
+
+                element.classList.add(
+                    "black"
+                );
+
+            }
+
+
+            /*
+             * X座標
+             */
+
+            const whiteNotesBefore =
+                countWhiteKeysBefore(
+                    note.midi
+                );
+
+
+            const totalWhiteKeys =
+                countWhiteKeysInRange();
+
+
+            let left =
+                (
+                    whiteNotesBefore /
+                    totalWhiteKeys
+                ) * 100;
+
+
+            let width =
+                100 /
+                totalWhiteKeys;
+
+
+            /*
+             * 黒鍵
+             */
+
+            if (
+                isBlackKey(
+                    note.midi
+                )
+            ) {
+
+                width *= 0.62;
+
+                left -=
+                    width * 0.15;
+
+            }
+
+
+            element.style.left =
+                `${left}%`;
+
+
+            element.style.width =
+                `${width}%`;
+
+
+            noteElements.push({
+
+                note,
+
+                element
+
+            });
+
+
+            notesElement.appendChild(
+                element
+            );
+
         }
+    );
 
-
-        /*
-         * X座標
-         */
-
-        const whiteNotesBefore = countWhiteKeysBefore(
-            note.midi
-        );
-
-        const totalWhiteKeys =
-            countWhiteKeysInRange();
-
-
-        let left =
-            (whiteNotesBefore / totalWhiteKeys) * 100;
-
-
-        let width =
-            100 / totalWhiteKeys;
-
-
-        /*
-         * 黒鍵は少し細くする
-         */
-
-        if (isBlackKey(note.midi)) {
-
-            width *= 0.62;
-
-            left -= width * 0.15;
-        }
-
-
-        element.style.left = `${left}%`;
-
-        element.style.width = `${width}%`;
-
-
-        /*
-         * ノートの長さ
-         *
-         * 後で画面高さに合わせて設定
-         */
-
-        noteElements.push({
-            note,
-            element
-        });
-
-        notesElement.appendChild(element);
-    });
 }
 
 
-function countWhiteKeysBefore(midiNumber) {
+function countWhiteKeysBefore(
+    midiNumber
+) {
 
     let count = 0;
 
+
     for (
-        let midiNumber2 = MIN_MIDI;
-        midiNumber2 < midiNumber;
-        midiNumber2++
+        let number = MIN_MIDI;
+        number < midiNumber;
+        number++
     ) {
 
-        if (!isBlackKey(midiNumber2)) {
+        if (
+            !isBlackKey(number)
+        ) {
+
             count++;
+
         }
+
     }
 
+
     return count;
+
 }
 
 
@@ -639,75 +1028,134 @@ function countWhiteKeysInRange() {
 
     let count = 0;
 
+
     for (
-        let midiNumber = MIN_MIDI;
-        midiNumber <= MAX_MIDI;
-        midiNumber++
+        let number = MIN_MIDI;
+        number <= MAX_MIDI;
+        number++
     ) {
 
-        if (!isBlackKey(midiNumber)) {
+        if (
+            !isBlackKey(number)
+        ) {
+
             count++;
+
         }
+
     }
 
+
     return count;
+
 }
 
 
-/* =========================================================
-   Playback
-========================================================= */
+/*
+ * =========================================================
+ * PLAY
+ * =========================================================
+ */
 
-playButton.addEventListener("click", async () => {
+playButton.addEventListener(
+    "click",
+    async () => {
 
-    if (!midi || notes.length === 0) {
+        if (
+            !midi ||
+            notes.length === 0
+        ) {
 
-        alert("先にMIDIファイルを読み込んでください。");
+            alert(
+                "先にMIDIファイルを読み込んでください。"
+            );
 
-        return;
+            return;
+
+        }
+
+
+        await startAudio();
+
+
+        if (isPlaying) {
+
+            return;
+
+        }
+
+
+        isPlaying = true;
+
+
+        startTime =
+            performance.now() / 1000 -
+            pausedTime;
+
+
+        /*
+         * 再生位置より前のノートは
+         * 再生済みにする
+         */
+
+        lastPlayedNotes.clear();
+
+
+        notes.forEach(
+            (note, index) => {
+
+                if (
+                    note.time <
+                    pausedTime
+                ) {
+
+                    lastPlayedNotes.add(
+                        `${index}_${note.time}`
+                    );
+
+                }
+
+            }
+        );
+
+
+        if (
+            animationFrame === null
+        ) {
+
+            animationFrame =
+                requestAnimationFrame(
+                    update
+                );
+
+        }
+
     }
+);
 
 
-    await startAudio();
+/*
+ * =========================================================
+ * PAUSE
+ * =========================================================
+ */
 
+pauseButton.addEventListener(
+    "click",
+    () => {
 
-    if (isPlaying) {
-        return;
+        pausePlayback();
+
     }
-
-
-    isPlaying = true;
-
-    startTime =
-        performance.now() / 1000 -
-        pausedTime;
-
-
-    lastPlayedNotes.clear();
-
-
-    if (animationFrame === null) {
-        animationFrame = requestAnimationFrame(update);
-    }
-});
-
-
-pauseButton.addEventListener("click", () => {
-
-    pausePlayback();
-});
-
-
-stopButton.addEventListener("click", () => {
-
-    stopPlayback();
-});
+);
 
 
 function pausePlayback() {
 
     if (!isPlaying) {
+
         return;
+
     }
 
 
@@ -720,7 +1168,24 @@ function pausePlayback() {
 
 
     isPlaying = false;
+
 }
+
+
+/*
+ * =========================================================
+ * STOP
+ * =========================================================
+ */
+
+stopButton.addEventListener(
+    "click",
+    () => {
+
+        stopPlayback();
+
+    }
+);
 
 
 function stopPlayback() {
@@ -733,97 +1198,141 @@ function stopPlayback() {
 
 
     /*
-     * 発音中のノートを停止
+     * 音を停止
      */
 
     if (synth) {
 
         try {
+
             synth.releaseAll();
+
         } catch (error) {
+
             console.warn(error);
+
         }
+
     }
 
 
     /*
-     * 鍵盤の状態を解除
+     * 鍵盤を解除
      */
 
-    keyElements.forEach(element => {
-        element.classList.remove("active");
-    });
+    keyElements.forEach(
+        (element) => {
+
+            element.classList.remove(
+                "active"
+            );
+
+        }
+    );
 
 
-    progressElement.value = 0;
+    progressElement.value =
+        0;
 
-    currentTimeElement.textContent = "00:00";
+
+    currentTimeElement.textContent =
+        "00:00";
+
 }
 
 
-/* =========================================================
-   Animation
-========================================================= */
+/*
+ * =========================================================
+ * ANIMATION
+ * =========================================================
+ */
 
 function update() {
 
-    animationFrame = requestAnimationFrame(update);
+    animationFrame =
+        requestAnimationFrame(
+            update
+        );
 
 
     if (!midi) {
+
         return;
+
     }
 
 
     const currentTime =
         isPlaying
-            ? performance.now() / 1000 - startTime
+            ? (
+                performance.now() /
+                1000 -
+                startTime
+            )
             : pausedTime;
 
 
-    const duration = midi.duration;
+    const duration =
+        midi.duration;
 
 
     /*
-     * UI
+     * TIME
      */
 
     currentTimeElement.textContent =
-        formatTime(currentTime);
+        formatTime(
+            currentTime
+        );
 
 
     totalTimeElement.textContent =
-        formatTime(duration);
+        formatTime(
+            duration
+        );
 
 
-    progressElement.value =
-        duration > 0
-            ? Math.min(
+    /*
+     * PROGRESS
+     */
+
+    if (duration > 0) {
+
+        progressElement.value =
+            Math.min(
                 100,
                 Math.max(
                     0,
-                    currentTime / duration * 100
+                    (
+                        currentTime /
+                        duration
+                    ) * 100
                 )
-            )
-            : 0;
+            );
+
+    }
 
 
     /*
-     * ノート描画
+     * NOTES
      */
 
-    renderNotes(currentTime);
+    renderNotes(
+        currentTime
+    );
 
 
     /*
-     * MIDI音声
+     * AUDIO
      */
 
-    playNotes(currentTime);
+    playNotes(
+        currentTime
+    );
 
 
     /*
-     * 終了
+     * END
      */
 
     if (
@@ -832,404 +1341,521 @@ function update() {
     ) {
 
         stopPlayback();
+
     }
+
 }
 
 
-/* =========================================================
-   Render Falling Notes
-========================================================= */
+/*
+ * =========================================================
+ * RENDER FALLING NOTES
+ * =========================================================
+ */
 
-function renderNotes(currentTime) {
+function renderNotes(
+    currentTime
+) {
 
     const areaHeight =
         notesElement.clientHeight;
 
 
-    if (areaHeight <= 0) {
+    if (
+        areaHeight <= 0
+    ) {
+
         return;
+
     }
 
 
-    /*
-     * FALL_TIME秒前から画面上部に出現
-     *
-     * currentTime:
-     *
-     * note.time - FALL_TIME
-     *          ↓
-     *     画面上端
-     *
-     * note.time
-     *          ↓
-     *      鍵盤
-     */
+    const pixelsPerSecond =
+        areaHeight /
+        FALL_TIME;
 
 
-    noteElements.forEach(item => {
+    noteElements.forEach(
+        (item) => {
 
-        const note = item.note;
-
-        const element = item.element;
-
-
-        const appearTime =
-            note.time - FALL_TIME;
+            const note =
+                item.note;
 
 
-        /*
-         * まだ出現していない
-         */
-
-        if (currentTime < appearTime) {
-
-            element.style.display = "none";
-
-            return;
-        }
+            const element =
+                item.element;
 
 
-        /*
-         * すでに通過したノート
-         */
-
-        const endTime =
-            note.time + note.duration;
+            const appearTime =
+                note.time -
+                FALL_TIME;
 
 
-        if (
-            currentTime >
-            endTime
-        ) {
+            /*
+             * まだ出現していない
+             */
 
-            element.style.display = "none";
+            if (
+                currentTime <
+                appearTime
+            ) {
 
-            return;
-        }
+                element.style.display =
+                    "none";
 
+                return;
 
-        element.style.display = "block";
-
-
-        /*
-         * ノートの高さ
-         *
-         * durationに比例
-         */
-
-        const pixelsPerSecond =
-            areaHeight / FALL_TIME;
-
-
-        const height =
-            Math.max(
-                8,
-                note.duration * pixelsPerSecond
-            );
-
-
-        element.style.height =
-            `${height}px`;
-
-
-        /*
-         * 現在の位置
-         *
-         * note.time が鍵盤ライン
-         */
-
-        const distance =
-            (note.time - currentTime) *
-            pixelsPerSecond;
-
-
-        const y =
-            areaHeight -
-            distance -
-            height;
-
-
-        element.style.transform =
-            `translateY(${y}px)`;
-
-
-        /*
-         * velocityを透明度に反映
-         */
-
-        const velocity =
-            Math.max(
-                0.35,
-                Math.min(
-                    1,
-                    note.velocity
-                )
-            );
-
-
-        element.style.opacity =
-            velocity;
-    });
-}
-
-
-/* =========================================================
-   MIDI Audio Playback
-========================================================= */
-
-function playNotes(currentTime) {
-
-    if (!isPlaying || !synth) {
-        return;
-    }
-
-
-    /*
-     * 少し先まで検索
-     */
-
-    const lookAhead = 0.03;
-
-
-    notes.forEach((note, index) => {
-
-        const key =
-            `${index}_${note.time}`;
-
-
-        /*
-         * すでに再生済み
-         */
-
-        if (lastPlayedNotes.has(key)) {
-            return;
-        }
-
-
-        /*
-         * 再生タイミング
-         */
-
-        if (
-            currentTime >= note.time &&
-            currentTime < note.time + lookAhead
-        ) {
-
-            lastPlayedNotes.add(key);
-
-
-            try {
-
-                synth.triggerAttackRelease(
-                    note.name,
-                    Math.max(
-                        0.03,
-                        note.duration
-                    ),
-                    undefined,
-                    note.velocity
-                );
-
-
-                flashKey(note.midi);
-
-            } catch (error) {
-
-                console.warn(
-                    "Note playback error:",
-                    error
-                );
             }
+
+
+            /*
+             * 完全に通過
+             */
+
+            const endTime =
+                note.time +
+                note.duration;
+
+
+            if (
+                currentTime >
+                endTime
+            ) {
+
+                element.style.display =
+                    "none";
+
+                return;
+
+            }
+
+
+            element.style.display =
+                "block";
+
+
+            /*
+             * ノートの高さ
+             */
+
+            const height =
+                Math.max(
+                    8,
+                    note.duration *
+                    pixelsPerSecond
+                );
+
+
+            element.style.height =
+                `${height}px`;
+
+
+            /*
+             * 鍵盤までの距離
+             */
+
+            const distance =
+                (
+                    note.time -
+                    currentTime
+                ) *
+                pixelsPerSecond;
+
+
+            const y =
+                areaHeight -
+                distance -
+                height;
+
+
+            element.style.transform =
+                `translateY(${y}px)`;
+
+
+            /*
+             * Velocity
+             */
+
+            const velocity =
+                Math.max(
+                    0.35,
+                    Math.min(
+                        1,
+                        note.velocity
+                    )
+                );
+
+
+            element.style.opacity =
+                velocity;
+
         }
-    });
+    );
+
 }
 
 
-/* =========================================================
-   Keyboard Flash
-========================================================= */
+/*
+ * =========================================================
+ * PLAY MIDI NOTES
+ * =========================================================
+ */
 
-function flashKey(midiNumber) {
+function playNotes(
+    currentTime
+) {
+
+    if (
+        !isPlaying ||
+        !synth
+    ) {
+
+        return;
+
+    }
+
+
+    const lookAhead =
+        0.04;
+
+
+    notes.forEach(
+        (note, index) => {
+
+            const key =
+                `${index}_${note.time}`;
+
+
+            /*
+             * 再生済み
+             */
+
+            if (
+                lastPlayedNotes.has(
+                    key
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * 再生タイミング
+             */
+
+            if (
+                currentTime >=
+                    note.time &&
+                currentTime <
+                    note.time +
+                    lookAhead
+            ) {
+
+                lastPlayedNotes.add(
+                    key
+                );
+
+
+                try {
+
+                    synth.triggerAttackRelease(
+
+                        note.name,
+
+                        Math.max(
+                            0.03,
+                            note.duration
+                        ),
+
+                        undefined,
+
+                        note.velocity
+
+                    );
+
+
+                    flashKey(
+                        note.midi
+                    );
+
+
+                } catch (error) {
+
+                    console.warn(
+                        "Note playback error:",
+                        error
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/*
+ * =========================================================
+ * KEY FLASH
+ * =========================================================
+ */
+
+function flashKey(
+    midiNumber
+) {
 
     const element =
-        keyElements.get(midiNumber);
+        keyElements.get(
+            midiNumber
+        );
 
 
     if (!element) {
+
         return;
+
     }
 
 
-    element.classList.add("active");
+    element.classList.add(
+        "active"
+    );
 
 
-    setTimeout(() => {
+    setTimeout(
+        () => {
 
-        /*
-         * 手動演奏中なら解除しない
-         */
+            /*
+             * 手動演奏中なら解除しない
+             */
 
-        if (
-            !manuallyPressedKeys.has(
-                midiNumber
-            )
-        ) {
+            if (
+                !manuallyPressedKeys.has(
+                    midiNumber
+                )
+            ) {
 
-            element.classList.remove("active");
-        }
+                element.classList.remove(
+                    "active"
+                );
 
-    }, 100);
+            }
+
+        },
+        100
+    );
+
 }
 
 
-/* =========================================================
-   Progress Seek
-========================================================= */
+/*
+ * =========================================================
+ * SEEK
+ * =========================================================
+ */
 
-progressElement.addEventListener("input", () => {
+progressElement.addEventListener(
+    "input",
+    () => {
 
-    if (!midi) {
-        return;
-    }
+        if (!midi) {
 
+            return;
 
-    const duration = midi.duration;
-
-
-    const newTime =
-        Number(progressElement.value) /
-        100 *
-        duration;
-
-
-    pausedTime = newTime;
-
-
-    /*
-     * その位置より前のノートを
-     * 再生済み扱いにする
-     */
-
-    lastPlayedNotes.clear();
-
-
-    notes.forEach((note, index) => {
-
-        if (note.time < newTime) {
-
-            lastPlayedNotes.add(
-                `${index}_${note.time}`
-            );
         }
-    });
 
 
-    if (isPlaying) {
+        const duration =
+            midi.duration;
 
-        startTime =
-            performance.now() / 1000 -
+
+        const newTime =
+            (
+                Number(
+                    progressElement.value
+                ) / 100
+            ) *
+            duration;
+
+
+        pausedTime =
             newTime;
+
+
+        /*
+         * ノートの再生状態を
+         * 現在位置に合わせる
+         */
+
+        lastPlayedNotes.clear();
+
+
+        notes.forEach(
+            (note, index) => {
+
+                if (
+                    note.time <
+                    newTime
+                ) {
+
+                    lastPlayedNotes.add(
+                        `${index}_${note.time}`
+                    );
+
+                }
+
+            }
+        );
+
+
+        if (isPlaying) {
+
+            startTime =
+                performance.now() /
+                1000 -
+                newTime;
+
+        }
+
+
+        currentTimeElement.textContent =
+            formatTime(
+                newTime
+            );
+
     }
+);
 
 
-    currentTimeElement.textContent =
-        formatTime(newTime);
-});
-
-
-/* =========================================================
-   Keyboard Support
-========================================================= */
+/*
+ * =========================================================
+ * COMPUTER KEYBOARD
+ * =========================================================
+ */
 
 const keyboardMap = {
 
-    "z": 48,   // C3
+    "z": 48,
+
     "s": 49,
+
     "x": 50,
+
     "d": 51,
+
     "c": 52,
+
     "v": 53,
+
     "g": 54,
+
     "b": 55,
+
     "h": 56,
+
     "n": 57,
+
     "j": 58,
+
     "m": 59,
 
-    ",": 60,   // C4
+    ",": 60,
+
     "l": 61,
+
     ".": 62,
+
     ";": 63,
+
     "/": 64
 
 };
 
 
-document.addEventListener("keydown", async (event) => {
+document.addEventListener(
+    "keydown",
+    async (event) => {
 
-    if (event.repeat) {
-        return;
+        if (event.repeat) {
+
+            return;
+
+        }
+
+
+        const midiNumber =
+            keyboardMap[
+                event.key
+            ];
+
+
+        if (
+            midiNumber === undefined
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        await startAudio();
+
+
+        pressKey(
+            midiNumber
+        );
+
     }
+);
 
 
-    const midiNumber =
-        keyboardMap[event.key];
+document.addEventListener(
+    "keyup",
+    (event) => {
+
+        const midiNumber =
+            keyboardMap[
+                event.key
+            ];
 
 
-    if (
-        midiNumber === undefined
-    ) {
-        return;
+        if (
+            midiNumber === undefined
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        releaseKey(
+            midiNumber
+        );
+
     }
+);
 
 
-    event.preventDefault();
-
-
-    await startAudio();
-
-    pressKey(midiNumber);
-});
-
-
-document.addEventListener("keyup", (event) => {
-
-    const midiNumber =
-        keyboardMap[event.key];
-
-
-    if (
-        midiNumber === undefined
-    ) {
-        return;
-    }
-
-
-    event.preventDefault();
-
-    releaseKey(midiNumber);
-});
-
-
-/* =========================================================
-   Resize
-========================================================= */
-
-window.addEventListener("resize", () => {
-
-    /*
-     * 描画は次のanimation frameで
-     * 自動的に再計算される
-     */
-
-});
-
-
-/* =========================================================
-   Initial
-========================================================= */
+/*
+ * =========================================================
+ * INITIALIZE
+ * =========================================================
+ */
 
 createPiano();
 
+
 animationFrame =
-    requestAnimationFrame(update);
+    requestAnimationFrame(
+        update
+    );
