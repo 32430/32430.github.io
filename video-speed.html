@@ -104,8 +104,8 @@ button:hover,.download:hover{filter:brightness(1.16)}button:disabled{opacity:.5;
 <p class="notice">書き出しはブラウザ内のFFmpeg WebAssemblyで行います。初回はFFmpeg本体の読み込みに時間がかかります。処理中はこのページを閉じないでください。</p>
 </section></main>
 
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const video=$("video");
@@ -175,25 +175,69 @@ function setExportProgress(percent,text,detail){
   $("exportText").innerHTML=text;
   $("exportDetail").textContent=detail||"";
 }
+async function fetchBlobWithProgress(url, type, startPercent, endPercent, label){
+  const res=await fetch(url,{cache:"force-cache"});
+  if(!res.ok) throw new Error(`FFmpegファイルの取得に失敗しました (${res.status})`);
+  const total=Number(res.headers.get("content-length"))||0;
+  const reader=res.body?.getReader();
+  if(!reader){
+    const blob=await res.blob();
+    setExportProgress(endPercent,`<i class="fa-solid fa-download"></i> ${label}`,`${(blob.size/1024/1024).toFixed(1)} MB 読み込み完了`);
+    return URL.createObjectURL(new Blob([blob],{type}));
+  }
+  const chunks=[];let loaded=0;
+  while(true){
+    const {done,value}=await reader.read();
+    if(done)break;
+    chunks.push(value);loaded+=value.byteLength;
+    const local=total?loaded/total:0;
+    const pct=startPercent+(endPercent-startPercent)*local;
+    setExportProgress(pct,`<i class="fa-solid fa-download fa-spin"></i> ${label}`,
+      total?`${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB`:`${(loaded/1024/1024).toFixed(1)} MB`);
+  }
+  const blob=new Blob(chunks,{type});
+  setExportProgress(endPercent,`<i class="fa-solid fa-circle-check"></i> ${label} 完了`,
+    `${(blob.size/1024/1024).toFixed(1)} MB`);
+  return URL.createObjectURL(blob);
+}
+
 async function ensureFFmpeg(){
   if(ffmpegLoaded)return;
-  setExportProgress(3,'<i class="fa-solid fa-spinner fa-spin"></i> FFmpegを読み込んでいます…',"初回のみFFmpeg本体を準備します");
-  const{FFmpeg}=FFmpegWASM;const{toBlobURL}=FFmpegUtil;
+  const {FFmpeg}=FFmpegWASM;
   ffmpeg=new FFmpeg();
   ffmpeg.on("progress",({progress})=>{
-    const pct=10+Math.max(0,Math.min(1,progress))*85;
+    const pct=35+Math.max(0,Math.min(1,progress))*64;
     setExportProgress(pct,'<i class="fa-solid fa-gear fa-spin"></i> 動画を書き出しています…',
       `エンコード中：${Math.round(progress*100)}%`);
   });
   ffmpeg.on("log",({message})=>console.log("[FFmpeg]",message));
+
   const baseURL="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
-  setExportProgress(5,'<i class="fa-solid fa-download fa-spin"></i> FFmpeg本体を読み込んでいます…',"準備中…");
-  await ffmpeg.load({
-    coreURL:await toBlobURL(`${baseURL}/ffmpeg-core.js`,"text/javascript"),
-    wasmURL:await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,"application/wasm")
-  });
+  const loadStarted=Date.now();
+  setExportProgress(1,'<i class="fa-solid fa-download fa-spin"></i> FFmpegを準備しています…',"FFmpeg core のダウンロードを開始しています");
+
+  // Download the two core files ourselves so the user can see real download progress.
+  // This also avoids an opaque "5%" wait while ffmpeg.load() fetches the core.
+  const coreJsURL=await fetchBlobWithProgress(
+    `${baseURL}/ffmpeg-core.js`,"text/javascript",2,17,"FFmpeg JavaScript"
+  );
+  const wasmURL=await fetchBlobWithProgress(
+    `${baseURL}/ffmpeg-core.wasm`,"application/wasm",17,34,"FFmpeg WebAssembly"
+  );
+
+  setExportProgress(35,'<i class="fa-solid fa-microchip fa-spin"></i> FFmpegを起動しています…',"WebAssemblyを初期化しています");
+  try{
+    await Promise.race([
+      ffmpeg.load({coreURL:coreJsURL,wasmURL:wasmURL}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("FFmpegの初期化が60秒で完了しませんでした。ネットワークまたはブラウザの制限を確認してください。")),60000))
+    ]);
+  }finally{
+    URL.revokeObjectURL(coreJsURL);
+    URL.revokeObjectURL(wasmURL);
+  }
   ffmpegLoaded=true;
-  setExportProgress(10,'<i class="fa-solid fa-circle-check"></i> FFmpegの準備完了',"動画を解析しています…");
+  const sec=((Date.now()-loadStarted)/1000).toFixed(1);
+  setExportProgress(35,'<i class="fa-solid fa-circle-check"></i> FFmpegの準備完了',`初期化完了（${sec}秒）`);
 }
 function makeParts(){const d=video.duration,all=[...segments].sort((a,b)=>a.start-b.start),parts=[];let p=0;for(const s of all){if(s.start>p)parts.push({start:p,end:s.start,rate:1});parts.push({start:s.start,end:s.end,rate:s.rate});p=s.end;}if(p<d)parts.push({start:p,end:d,rate:1});return parts.length?parts:[{start:0,end:d,rate:1}];}
 function makeFilter(withAudio=true){const parts=makeParts(),v=[],a=[],defs=[];parts.forEach((p,i)=>{const end=`:end=${esc(p.end)}`;v.push(`[0:v]trim=start=${esc(p.start)}${end},setpts=PTS-STARTPTS,setpts=PTS/${esc(p.rate)}[v${i}]`);if(withAudio)a.push(`[0:a]atrim=start=${esc(p.start)}${end},asetpts=PTS-STARTPTS,${atempoChain(p.rate)}[a${i}]`);});const cv=parts.map((_,i)=>`[v${i}]`).join("");defs.push(v.join(";"));if(withAudio){const ca=parts.map((_,i)=>`[a${i}]`).join("");defs.push(a.join(";"),`${cv}concat=n=${parts.length}:v=1:a=0[vout]`,`${ca}concat=n=${parts.length}:v=0:a=1[aout]`);}else defs.push(`${cv}concat=n=${parts.length}:v=1:a=0[vout]`);return defs.join(";");}
