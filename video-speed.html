@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Video BPM Speed Tool</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<style>
+:root{--bg:#0b1020;--panel:#151c31;--panel2:#1d2742;--text:#eef3ff;--muted:#9aa7c0;--accent:#6ea8fe;--border:#2b3857}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(145deg,#090d19,#111a31);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{padding:22px 18px;text-align:center;border-bottom:1px solid var(--border);background:rgba(8,12,24,.75);backdrop-filter:blur(12px);position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}.sub{color:var(--muted);font-size:13px;margin-top:6px}
+main{max-width:1050px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.card{background:rgba(21,28,49,.9);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 12px 35px rgba(0,0,0,.2)}
+.card h2{font-size:16px;margin:0 0 14px} video{width:100%;max-height:58vh;background:#000;border-radius:12px;display:block}
+.drop{border:2px dashed #405176;border-radius:15px;padding:24px;text-align:center;margin-bottom:14px;cursor:pointer;background:#10172a}
+.drop:hover{border-color:var(--accent)}.drop i{font-size:30px;margin-bottom:9px;color:var(--accent)}input[type=file]{display:none}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+input[type=number]{width:100%;background:#0e1528;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px;font-size:15px;outline:none}
+input:focus{border-color:var(--accent)}.result{margin-top:13px;padding:14px;border-radius:12px;background:#0e1528;border:1px solid var(--border)}
+.result strong{font-size:24px}.muted{color:var(--muted)}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+button,.download{border:0;border-radius:10px;padding:11px 13px;background:var(--panel2);color:var(--text);cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+button:hover,.download:hover{filter:brightness(1.16)}button:disabled{opacity:.5;cursor:not-allowed}.primary{background:var(--accent);color:#07101f}.danger{background:#51202a;color:#ffdfe3}
+.range-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.segment{background:#0e1528;border:1px solid var(--border);padding:10px;border-radius:11px;margin-top:9px}.segment small{color:var(--muted)}
+.timeline{height:34px;background:#0c1222;border:1px solid var(--border);border-radius:10px;position:relative;overflow:hidden;margin:14px 0}
+.marker{position:absolute;top:0;height:100%;background:rgba(110,168,254,.35);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}.marker span{font-size:10px;padding:2px 5px;display:block;white-space:nowrap}
+.progress{height:7px;border-radius:99px;background:#283552;overflow:hidden;margin:10px 0}.bar{height:100%;width:0;background:var(--accent);transition:width .1s}
+.status{font-size:13px;color:var(--muted);min-height:20px;margin-top:9px}.notice{font-size:12px;color:var(--muted);line-height:1.6}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.range-row{grid-template-columns:1fr 1fr}.range-row button{grid-column:1/-1}.fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1><i class="fa-solid fa-film"></i> Video BPM Speed Tool</h1><div class="sub">BPMから速度を計算し、動画全体または一部だけ速度変更</div></header>
+<main><div class="grid">
+<section class="card">
+<h2><i class="fa-solid fa-video"></i> 動画</h2>
+<label class="drop" for="fileInput" id="drop"><i class="fa-solid fa-cloud-arrow-up"></i><br>動画ファイルを選択<br><small class="muted">MP4 / WebM / MOV など</small></label>
+<input id="fileInput" type="file" accept="video/*">
+<video id="video" controls playsinline></video>
+<div class="progress"><div class="bar" id="progressBar"></div></div>
+<div class="row">
+<button id="minus"><i class="fa-solid fa-backward"></i> 0.1倍遅く</button>
+<button id="play"><i class="fa-solid fa-play"></i> 再生</button>
+<button id="plus"><i class="fa-solid fa-forward"></i> 0.1倍速く</button>
+</div>
+<div class="status" id="videoInfo">動画を選択してください。</div>
+</section>
+
+<section class="card">
+<h2><i class="fa-solid fa-music"></i> BPM設定</h2>
+<div class="fields">
+<div><label>元のBPM</label><input id="srcBpm" type="number" min="0.01" step="0.01" placeholder="120"></div>
+<div><label>変更後のBPM</label><input id="dstBpm" type="number" min="0.01" step="0.01" placeholder="150"></div>
+</div>
+<div class="result"><div class="muted">元動画からの倍率</div><strong id="ratio">1.000×</strong><div id="ratioText" class="muted">BPMを入力してください。</div></div>
+<div style="height:12px"></div>
+<div class="row">
+<button class="primary" id="applyBpm"><i class="fa-solid fa-gauge-high"></i> BPMをプレビューに適用</button>
+<button id="resetRate"><i class="fa-solid fa-rotate-left"></i> 1倍に戻す</button>
+</div>
+<p class="notice">例：120 BPM → 150 BPMなら 150 ÷ 120 = 1.25倍です。音声は書き出し時にピッチを保つ方式で処理します。</p>
+</section>
+
+<section class="card" style="grid-column:1/-1">
+<h2><i class="fa-solid fa-scissors"></i> 一部だけ速度変更</h2>
+<p class="notice">ここで設定する速度は、BPMで計算した全体速度に対する倍率です。例：全体1.25倍＋区間1.5倍 → その区間は1.875倍。</p>
+<div class="range-row">
+<div><label>開始（秒）</label><input id="start" type="number" min="0" step="0.01" value="0"></div>
+<div><label>終了（秒）</label><input id="end" type="number" min="0" step="0.01" value="5"></div>
+<div><label>区間倍率</label><input id="segRate" type="number" min="0.1" max="16" step="0.1" value="0.5"></div>
+<button class="primary" id="addSegment"><i class="fa-solid fa-plus"></i> 追加</button>
+</div>
+<div id="segments"></div><div class="timeline" id="timeline"></div>
+<div class="row">
+<button id="clearSegments"><i class="fa-solid fa-trash"></i> 全区間を削除</button>
+<button class="primary" id="export"><i class="fa-solid fa-file-export"></i> 動画を書き出す</button>
+</div>
+<div class="status" id="exportStatus"></div>
+</section></div>
+
+<section class="card" style="margin-top:18px">
+<h2><i class="fa-solid fa-download"></i> 出力</h2>
+<a id="download" class="download primary" style="display:none" download="video-speed-edited.mp4"><i class="fa-solid fa-download"></i> 加工済み動画をダウンロード</a>
+<p class="notice">書き出しはブラウザ内のFFmpeg WebAssemblyで行います。初回はFFmpeg本体の読み込みに時間がかかります。処理中はこのページを閉じないでください。</p>
+</section></main>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const video=$("video");
+let file=null,fileUrl=null,outputUrl=null,baseRate=1,segments=[],ffmpeg=null,ffmpegLoaded=false;
+function fmt(t){t=Math.max(0,Number(t)||0);const m=Math.floor(t/60),s=t%60;return `${String(m).padStart(2,"0")}:${s.toFixed(2).padStart(5,"0")}`;}
+function clampRate(x){return Math.max(.1,Math.min(16,x));}
+$("fileInput").addEventListener("change",e=>{const f=e.target.files?.[0];if(f)loadVideo(f);});
+$("drop").addEventListener("dragover",e=>e.preventDefault());
+$("drop").addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer.files?.[0];if(f?.type.startsWith("video/"))loadVideo(f);});
+function loadVideo(f){file=f;if(fileUrl)URL.revokeObjectURL(fileUrl);fileUrl=URL.createObjectURL(f);video.src=fileUrl;video.load();$("videoInfo").textContent=`${f.name} / ${Math.round(f.size/1024/1024*10)/10} MB`;segments=[];renderSegments();}
+video.addEventListener("loadedmetadata",()=>{$("end").value=video.duration.toFixed(2);$("videoInfo").textContent=`${file?.name||""} / 長さ ${fmt(video.duration)} / ${video.videoWidth}×${video.videoHeight}`;renderTimeline();});
+video.addEventListener("timeupdate",()=>{if(video.duration)$("progressBar").style.width=(video.currentTime/video.duration*100)+"%";const s=segments.find(x=>video.currentTime>=x.start&&video.currentTime<x.end);const desired=clampRate(baseRate*(s?s.rate:1));if(Math.abs(video.playbackRate-desired)>.001)video.playbackRate=desired;});
+$("play").onclick=()=>{if(video.paused){video.play();$("play").innerHTML='<i class="fa-solid fa-pause"></i> 一時停止';}else{video.pause();$("play").innerHTML='<i class="fa-solid fa-play"></i> 再生';}};
+$("minus").onclick=()=>{baseRate=clampRate(baseRate-.1);updateRateUI();};$("plus").onclick=()=>{baseRate=clampRate(baseRate+.1);updateRateUI();};$("resetRate").onclick=()=>{baseRate=1;updateRateUI();};
+$("srcBpm").oninput=$("dstBpm").oninput=updateRatio;
+$("applyBpm").onclick=()=>{const a=Number($("srcBpm").value),b=Number($("dstBpm").value);if(!(a>0&&b>0))return alert("元のBPMと変更後のBPMを入力してください。");baseRate=b/a;updateRateUI();};
+function updateRatio(){const a=Number($("srcBpm").value),b=Number($("dstBpm").value);if(a>0&&b>0){const r=b/a;$("ratio").textContent=r.toFixed(4).replace(/0+$/,"").replace(/\.$/,"")+"×";$("ratioText").textContent=`${b} BPM ÷ ${a} BPM = ${r.toFixed(4)}倍`;}else{$("ratio").textContent="1.000×";$("ratioText").textContent="BPMを入力してください。";}}
+function updateRateUI(){video.playbackRate=baseRate;$("ratioText").textContent=`現在の全体プレビュー速度：${baseRate.toFixed(3)}倍`;}
+$("addSegment").onclick=()=>{const start=Number($("start").value),end=Number($("end").value),rate=Number($("segRate").value);if(!file||!Number.isFinite(video.duration))return alert("先に動画を選択してください。");if(!(start>=0&&end>start&&end<=video.duration))return alert(`開始・終了は 0〜${video.duration.toFixed(2)} 秒の範囲で、終了 > 開始にしてください。`);if(!(rate>0&&rate<=16))return alert("区間倍率は0.1〜16倍で指定してください。");if(segments.some(s=>start<s.end&&end>s.start))return alert("既存の区間と重ならない範囲を指定してください。");segments.push({start,end,rate});segments.sort((a,b)=>a.start-b.start);renderSegments();};
+function renderSegments(){const box=$("segments");box.innerHTML="";segments.forEach((s,i)=>{const div=document.createElement("div");div.className="segment";div.innerHTML=`<div><i class="fa-solid fa-bolt"></i> 区間 ${i+1}：<b>${fmt(s.start)} → ${fmt(s.end)}</b> / <b>${s.rate}×</b> <small>（全体速度に対する倍率）</small></div>`;const b=document.createElement("button");b.className="danger";b.innerHTML='<i class="fa-solid fa-trash"></i> 削除';b.onclick=()=>{segments.splice(i,1);renderSegments();};div.appendChild(b);box.appendChild(div);});renderTimeline();}
+function renderTimeline(){const t=$("timeline");t.innerHTML="";if(!video.duration)return;segments.forEach(s=>{const m=document.createElement("div");m.className="marker";m.style.left=(s.start/video.duration*100)+"%";m.style.width=((s.end-s.start)/video.duration*100)+"%";m.innerHTML=`<span>${s.rate}×</span>`;t.appendChild(m);});}
+function atempoChain(rate){let r=rate,parts=[];while(r>2){parts.push("atempo=2");r/=2;}while(r<.5){parts.push("atempo=0.5");r/=.5;}parts.push("atempo="+r.toFixed(8));return parts.join(",");}
+function esc(n){return Number(n).toFixed(6);}
+async function ensureFFmpeg(){if(ffmpegLoaded)return;$("exportStatus").textContent="FFmpegを読み込んでいます（初回は大きなファイルを読み込みます）…";const{FFmpeg}=FFmpegWASM;const{toBlobURL}=FFmpegUtil;ffmpeg=new FFmpeg();ffmpeg.on("progress",({progress})=>{$("exportStatus").textContent=`書き出し中… ${Math.round(progress*100)}%`;});ffmpeg.on("log",({message})=>console.log("[FFmpeg]",message));const baseURL="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";await ffmpeg.load({coreURL:await toBlobURL(`${baseURL}/ffmpeg-core.js`,"text/javascript"),wasmURL:await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,"application/wasm")});ffmpegLoaded=true;}
+function makeParts(){const d=video.duration,all=[...segments].sort((a,b)=>a.start-b.start),parts=[];let p=0;for(const s of all){if(s.start>p)parts.push({start:p,end:s.start,rate:1});parts.push({start:s.start,end:s.end,rate:s.rate});p=s.end;}if(p<d)parts.push({start:p,end:d,rate:1});return parts.length?parts:[{start:0,end:d,rate:1}];}
+function makeFilter(withAudio=true){const parts=makeParts(),v=[],a=[],defs=[];parts.forEach((p,i)=>{const end=`:end=${esc(p.end)}`;v.push(`[0:v]trim=start=${esc(p.start)}${end},setpts=PTS-STARTPTS,setpts=PTS/${esc(p.rate)}[v${i}]`);if(withAudio)a.push(`[0:a]atrim=start=${esc(p.start)}${end},asetpts=PTS-STARTPTS,${atempoChain(p.rate)}[a${i}]`);});const cv=parts.map((_,i)=>`[v${i}]`).join("");defs.push(v.join(";"));if(withAudio){const ca=parts.map((_,i)=>`[a${i}]`).join("");defs.push(a.join(";"),`${cv}concat=n=${parts.length}:v=1:a=0[vout]`,`${ca}concat=n=${parts.length}:v=0:a=1[aout]`);}else defs.push(`${cv}concat=n=${parts.length}:v=1:a=0[vout]`);return defs.join(";");}
+async function cleanup(names){for(const n of names){try{await ffmpeg.deleteFile(n);}catch(e){}}}
+$("clearSegments").onclick=()=>{segments=[];renderSegments();};
+$("export").onclick=async()=>{if(!file)return alert("先に動画を選択してください。");const btn=$("export");btn.disabled=true;$("download").style.display="none";try{await ensureFFmpeg();const ext=(file.name.split(".").pop()||"mp4").toLowerCase().replace(/[^a-z0-9]/g,""),input=`input.${ext||"mp4"}`;await ffmpeg.writeFile(input,await FFmpegUtil.fetchFile(file));try{$("exportStatus").textContent="音声付きで書き出しています…";await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(true),"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","veryfast","-crf","18","-c:a","aac","-b:a","192k","-movflags","+faststart","output.mp4"]);}catch(audioError){console.warn(audioError);try{await ffmpeg.deleteFile("output.mp4");}catch(e){}$("exportStatus").textContent="音声ストリームがないため、映像のみで再試行しています…";await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(false),"-map","[vout]","-c:v","libx264","-preset","veryfast","-crf","18","-movflags","+faststart","output.mp4"]);}const data=await ffmpeg.readFile("output.mp4");if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(new Blob([data.buffer],{type:"video/mp4"}));const dl=$("download");dl.href=outputUrl;dl.download=(file.name.replace(/\.[^.]+$/,"")||"video")+"-speed.mp4";dl.style.display="inline-flex";$("exportStatus").textContent=`完了：${(data.length/1024/1024).toFixed(1)} MB`;await cleanup([input,"output.mp4"]);}catch(e){console.error(e);$("exportStatus").textContent="エラー："+(e?.message||e);alert("書き出しに失敗しました。ブラウザの開発者コンソールに詳細が出ています。");}finally{btn.disabled=false;}};
+</script>
+</body>
+</html>
