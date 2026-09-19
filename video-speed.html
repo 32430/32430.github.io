@@ -28,6 +28,11 @@ button:hover,.download:hover{filter:brightness(1.16)}button:disabled{opacity:.5;
 .marker{position:absolute;top:0;height:100%;background:rgba(110,168,254,.35);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}.marker span{font-size:10px;padding:2px 5px;display:block;white-space:nowrap}
 .progress{height:7px;border-radius:99px;background:#283552;overflow:hidden;margin:10px 0}.bar{height:100%;width:0;background:var(--accent);transition:width .1s}
 .status{font-size:13px;color:var(--muted);min-height:20px;margin-top:9px}.notice{font-size:12px;color:var(--muted);line-height:1.6}
+.loadbox{display:none;margin:10px 0 14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:#0e1528}
+.loadtop{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-bottom:7px}
+.loadtrack{height:9px;border-radius:99px;background:#283552;overflow:hidden}
+.loadbar{height:100%;width:0%;background:var(--accent);transition:width .08s linear}
+.loaddetail{font-size:11px;color:var(--muted);margin-top:6px}
 @media(max-width:800px){.grid{grid-template-columns:1fr}.range-row{grid-template-columns:1fr 1fr}.range-row button{grid-column:1/-1}.fields{grid-template-columns:1fr}}
 </style>
 </head>
@@ -38,6 +43,11 @@ button:hover,.download:hover{filter:brightness(1.16)}button:disabled{opacity:.5;
 <h2><i class="fa-solid fa-video"></i> 動画</h2>
 <label class="drop" for="fileInput" id="drop"><i class="fa-solid fa-cloud-arrow-up"></i><br>動画ファイルを選択<br><small class="muted">MP4 / WebM / MOV など</small></label>
 <input id="fileInput" type="file" accept="video/*">
+<div class="loadbox" id="loadbox">
+  <div class="loadtop"><span id="loadText"><i class="fa-solid fa-spinner fa-spin"></i> 動画を読み込んでいます…</span><b id="loadPercent">0%</b></div>
+  <div class="loadtrack"><div class="loadbar" id="loadBar"></div></div>
+  <div class="loaddetail" id="loadDetail">準備中…</div>
+</div>
 <video id="video" controls playsinline></video>
 <div class="progress"><div class="bar" id="progressBar"></div></div>
 <div class="row">
@@ -77,6 +87,14 @@ button:hover,.download:hover{filter:brightness(1.16)}button:disabled{opacity:.5;
 <button id="clearSegments"><i class="fa-solid fa-trash"></i> 全区間を削除</button>
 <button class="primary" id="export"><i class="fa-solid fa-file-export"></i> 動画を書き出す</button>
 </div>
+<div class="loadbox" id="exportBox">
+  <div class="loadtop">
+    <span id="exportText"><i class="fa-solid fa-spinner fa-spin"></i> 書き出し準備中…</span>
+    <b id="exportPercent">0%</b>
+  </div>
+  <div class="loadtrack"><div class="loadbar" id="exportBar"></div></div>
+  <div class="loaddetail" id="exportDetail">待機中</div>
+</div>
 <div class="status" id="exportStatus"></div>
 </section></div>
 
@@ -97,8 +115,46 @@ function clampRate(x){return Math.max(.1,Math.min(16,x));}
 $("fileInput").addEventListener("change",e=>{const f=e.target.files?.[0];if(f)loadVideo(f);});
 $("drop").addEventListener("dragover",e=>e.preventDefault());
 $("drop").addEventListener("drop",e=>{e.preventDefault();const f=e.dataTransfer.files?.[0];if(f?.type.startsWith("video/"))loadVideo(f);});
-function loadVideo(f){file=f;if(fileUrl)URL.revokeObjectURL(fileUrl);fileUrl=URL.createObjectURL(f);video.src=fileUrl;video.load();$("videoInfo").textContent=`${f.name} / ${Math.round(f.size/1024/1024*10)/10} MB`;segments=[];renderSegments();}
-video.addEventListener("loadedmetadata",()=>{$("end").value=video.duration.toFixed(2);$("videoInfo").textContent=`${file?.name||""} / 長さ ${fmt(video.duration)} / ${video.videoWidth}×${video.videoHeight}`;renderTimeline();});
+function setLoadProgress(percent,text,detail){
+  percent=Math.max(0,Math.min(100,percent));
+  $("loadbox").style.display="block";
+  $("loadBar").style.width=percent+"%";
+  $("loadPercent").textContent=Math.round(percent)+"%";
+  $("loadText").innerHTML=text;
+  $("loadDetail").textContent=detail||"";
+}
+function loadVideo(f){
+  file=f;
+  if(fileUrl)URL.revokeObjectURL(fileUrl);
+  fileUrl=URL.createObjectURL(f);
+  segments=[];
+  renderSegments();
+  $("videoInfo").textContent=`${f.name} / ${Math.round(f.size/1024/1024*10)/10} MB`;
+  setLoadProgress(0,'<i class="fa-solid fa-spinner fa-spin"></i> 動画を読み込んでいます…',"ファイルを準備中…");
+  video.src="";
+  const reader=new FileReader();
+  reader.onprogress=e=>{
+    if(e.lengthComputable){
+      const pct=e.loaded/e.total*100;
+      setLoadProgress(pct,'<i class="fa-solid fa-spinner fa-spin"></i> 動画を読み込んでいます…',
+        `${(e.loaded/1024/1024).toFixed(1)} / ${(e.total/1024/1024).toFixed(1)} MB`);
+    }
+  };
+  reader.onload=()=>{
+    setLoadProgress(100,'<i class="fa-solid fa-circle-check"></i> ファイル読み込み完了',"動画を解析しています…");
+    video.src=URL.createObjectURL(new Blob([reader.result],{type:f.type||"video/mp4"}));
+    video.load();
+  };
+  reader.onerror=()=>setLoadProgress(0,'<i class="fa-solid fa-circle-xmark"></i> 読み込みエラー',"ファイルを読み込めませんでした。");
+  reader.readAsArrayBuffer(f);
+}
+video.addEventListener("loadedmetadata",()=>{
+  $("end").value=video.duration.toFixed(2);
+  $("videoInfo").textContent=`${file?.name||""} / 長さ ${fmt(video.duration)} / ${video.videoWidth}×${video.videoHeight}`;
+  setLoadProgress(100,'<i class="fa-solid fa-circle-check"></i> 動画の読み込み完了',
+    `長さ ${fmt(video.duration)} / ${video.videoWidth}×${video.videoHeight}`);
+  renderTimeline();
+});
 video.addEventListener("timeupdate",()=>{if(video.duration)$("progressBar").style.width=(video.currentTime/video.duration*100)+"%";const s=segments.find(x=>video.currentTime>=x.start&&video.currentTime<x.end);const desired=clampRate(baseRate*(s?s.rate:1));if(Math.abs(video.playbackRate-desired)>.001)video.playbackRate=desired;});
 $("play").onclick=()=>{if(video.paused){video.play();$("play").innerHTML='<i class="fa-solid fa-pause"></i> 一時停止';}else{video.pause();$("play").innerHTML='<i class="fa-solid fa-play"></i> 再生';}};
 $("minus").onclick=()=>{baseRate=clampRate(baseRate-.1);updateRateUI();};$("plus").onclick=()=>{baseRate=clampRate(baseRate+.1);updateRateUI();};$("resetRate").onclick=()=>{baseRate=1;updateRateUI();};
@@ -111,12 +167,41 @@ function renderSegments(){const box=$("segments");box.innerHTML="";segments.forE
 function renderTimeline(){const t=$("timeline");t.innerHTML="";if(!video.duration)return;segments.forEach(s=>{const m=document.createElement("div");m.className="marker";m.style.left=(s.start/video.duration*100)+"%";m.style.width=((s.end-s.start)/video.duration*100)+"%";m.innerHTML=`<span>${s.rate}×</span>`;t.appendChild(m);});}
 function atempoChain(rate){let r=rate,parts=[];while(r>2){parts.push("atempo=2");r/=2;}while(r<.5){parts.push("atempo=0.5");r/=.5;}parts.push("atempo="+r.toFixed(8));return parts.join(",");}
 function esc(n){return Number(n).toFixed(6);}
-async function ensureFFmpeg(){if(ffmpegLoaded)return;$("exportStatus").textContent="FFmpegを読み込んでいます（初回は大きなファイルを読み込みます）…";const{FFmpeg}=FFmpegWASM;const{toBlobURL}=FFmpegUtil;ffmpeg=new FFmpeg();ffmpeg.on("progress",({progress})=>{$("exportStatus").textContent=`書き出し中… ${Math.round(progress*100)}%`;});ffmpeg.on("log",({message})=>console.log("[FFmpeg]",message));const baseURL="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";await ffmpeg.load({coreURL:await toBlobURL(`${baseURL}/ffmpeg-core.js`,"text/javascript"),wasmURL:await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,"application/wasm")});ffmpegLoaded=true;}
+function setExportProgress(percent,text,detail){
+  percent=Math.max(0,Math.min(100,percent));
+  $("exportBox").style.display="block";
+  $("exportBar").style.width=percent+"%";
+  $("exportPercent").textContent=Math.round(percent)+"%";
+  $("exportText").innerHTML=text;
+  $("exportDetail").textContent=detail||"";
+}
+async function ensureFFmpeg(){
+  if(ffmpegLoaded)return;
+  setExportProgress(3,'<i class="fa-solid fa-spinner fa-spin"></i> FFmpegを読み込んでいます…',"初回のみFFmpeg本体を準備します");
+  const{FFmpeg}=FFmpegWASM;const{toBlobURL}=FFmpegUtil;
+  ffmpeg=new FFmpeg();
+  ffmpeg.on("progress",({progress})=>{
+    const pct=10+Math.max(0,Math.min(1,progress))*85;
+    setExportProgress(pct,'<i class="fa-solid fa-gear fa-spin"></i> 動画を書き出しています…',
+      `エンコード中：${Math.round(progress*100)}%`);
+  });
+  ffmpeg.on("log",({message})=>console.log("[FFmpeg]",message));
+  const baseURL="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+  setExportProgress(5,'<i class="fa-solid fa-download fa-spin"></i> FFmpeg本体を読み込んでいます…',"準備中…");
+  await ffmpeg.load({
+    coreURL:await toBlobURL(`${baseURL}/ffmpeg-core.js`,"text/javascript"),
+    wasmURL:await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,"application/wasm")
+  });
+  ffmpegLoaded=true;
+  setExportProgress(10,'<i class="fa-solid fa-circle-check"></i> FFmpegの準備完了',"動画を解析しています…");
+}
 function makeParts(){const d=video.duration,all=[...segments].sort((a,b)=>a.start-b.start),parts=[];let p=0;for(const s of all){if(s.start>p)parts.push({start:p,end:s.start,rate:1});parts.push({start:s.start,end:s.end,rate:s.rate});p=s.end;}if(p<d)parts.push({start:p,end:d,rate:1});return parts.length?parts:[{start:0,end:d,rate:1}];}
 function makeFilter(withAudio=true){const parts=makeParts(),v=[],a=[],defs=[];parts.forEach((p,i)=>{const end=`:end=${esc(p.end)}`;v.push(`[0:v]trim=start=${esc(p.start)}${end},setpts=PTS-STARTPTS,setpts=PTS/${esc(p.rate)}[v${i}]`);if(withAudio)a.push(`[0:a]atrim=start=${esc(p.start)}${end},asetpts=PTS-STARTPTS,${atempoChain(p.rate)}[a${i}]`);});const cv=parts.map((_,i)=>`[v${i}]`).join("");defs.push(v.join(";"));if(withAudio){const ca=parts.map((_,i)=>`[a${i}]`).join("");defs.push(a.join(";"),`${cv}concat=n=${parts.length}:v=1:a=0[vout]`,`${ca}concat=n=${parts.length}:v=0:a=1[aout]`);}else defs.push(`${cv}concat=n=${parts.length}:v=1:a=0[vout]`);return defs.join(";");}
 async function cleanup(names){for(const n of names){try{await ffmpeg.deleteFile(n);}catch(e){}}}
 $("clearSegments").onclick=()=>{segments=[];renderSegments();};
-$("export").onclick=async()=>{if(!file)return alert("先に動画を選択してください。");const btn=$("export");btn.disabled=true;$("download").style.display="none";try{await ensureFFmpeg();const ext=(file.name.split(".").pop()||"mp4").toLowerCase().replace(/[^a-z0-9]/g,""),input=`input.${ext||"mp4"}`;await ffmpeg.writeFile(input,await FFmpegUtil.fetchFile(file));try{$("exportStatus").textContent="音声付きで書き出しています…";await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(true),"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","veryfast","-crf","18","-c:a","aac","-b:a","192k","-movflags","+faststart","output.mp4"]);}catch(audioError){console.warn(audioError);try{await ffmpeg.deleteFile("output.mp4");}catch(e){}$("exportStatus").textContent="音声ストリームがないため、映像のみで再試行しています…";await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(false),"-map","[vout]","-c:v","libx264","-preset","veryfast","-crf","18","-movflags","+faststart","output.mp4"]);}const data=await ffmpeg.readFile("output.mp4");if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(new Blob([data.buffer],{type:"video/mp4"}));const dl=$("download");dl.href=outputUrl;dl.download=(file.name.replace(/\.[^.]+$/,"")||"video")+"-speed.mp4";dl.style.display="inline-flex";$("exportStatus").textContent=`完了：${(data.length/1024/1024).toFixed(1)} MB`;await cleanup([input,"output.mp4"]);}catch(e){console.error(e);$("exportStatus").textContent="エラー："+(e?.message||e);alert("書き出しに失敗しました。ブラウザの開発者コンソールに詳細が出ています。");}finally{btn.disabled=false;}};
+$("export").onclick=async()=>{if(!file)return alert("先に動画を選択してください。");const btn=$("export");btn.disabled=true;$("download").style.display="none";try{await ensureFFmpeg();const ext=(file.name.split(".").pop()||"mp4").toLowerCase().replace(/[^a-z0-9]/g,""),input=`input.${ext||"mp4"}`;await ffmpeg.writeFile(input,await FFmpegUtil.fetchFile(file));try{setExportProgress(11,'<i class="fa-solid fa-gear fa-spin"></i> 動画を書き出しています…',"音声付きでエンコード中…");await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(true),"-map","[vout]","-map","[aout]","-c:v","libx264","-preset","veryfast","-crf","18","-c:a","aac","-b:a","192k","-movflags","+faststart","output.mp4"]);}catch(audioError){console.warn(audioError);try{await ffmpeg.deleteFile("output.mp4");}catch(e){}setExportProgress(11,'<i class="fa-solid fa-gear fa-spin"></i> 映像を書き出しています…',"音声なしで再試行中…");await ffmpeg.exec(["-i",input,"-filter_complex",makeFilter(false),"-map","[vout]","-c:v","libx264","-preset","veryfast","-crf","18","-movflags","+faststart","output.mp4"]);}const data=await ffmpeg.readFile("output.mp4");if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(new Blob([data.buffer],{type:"video/mp4"}));const dl=$("download");dl.href=outputUrl;dl.download=(file.name.replace(/\.[^.]+$/,"")||"video")+"-speed.mp4";dl.style.display="inline-flex";setExportProgress(100,'<i class="fa-solid fa-circle-check"></i> 書き出し完了',`完成：${(data.length/1024/1024).toFixed(1)} MB`);
+$("exportStatus").textContent=`完了：${(data.length/1024/1024).toFixed(1)} MB`;await cleanup([input,"output.mp4"]);}catch(e){console.error(e);setExportProgress(0,'<i class="fa-solid fa-circle-xmark"></i> 書き出しエラー',"処理に失敗しました");
+$("exportStatus").textContent="エラー："+(e?.message||e);alert("書き出しに失敗しました。ブラウザの開発者コンソールに詳細が出ています。");}finally{btn.disabled=false;}};
 </script>
 </body>
 </html>
